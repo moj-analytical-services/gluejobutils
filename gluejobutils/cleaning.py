@@ -1,5 +1,5 @@
 from pyspark import Row
-def apply_cleaning_function_list(pyspark_df, list_of_functions):
+def apply_cleaning_function_list(pyspark_df, list_of_functions, sampleRatio=None):
 
     def run_all_functions(row):
 
@@ -12,4 +12,7 @@ def apply_cleaning_function_list(pyspark_df, list_of_functions):
 
 
     new_df = pyspark_df.rdd.map(run_all_functions)
-    return new_df.toDF()
+    if sampleRatio:
+        return new_df.toDF(sampleRatio=sampleRatio)
+    else:
+        return new_df.toDF()
