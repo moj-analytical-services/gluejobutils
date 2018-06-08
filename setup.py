@@ -9,4 +9,5 @@ setup(name='gluejobutils',
       author_email='robinlinacre@hotmail.com',
       license='MIT',
       packages=['gluejobutils'],
-      zip_safe=False)
+      zip_safe=False,
+      include_package_data=True)
