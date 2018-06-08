@@ -1,4 +1,3 @@
-import pandas as pd
 import os
 import pkg_resources
 import json
