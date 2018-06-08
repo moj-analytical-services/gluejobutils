@@ -1,0 +1,34 @@
+{
+  "character": {
+    "glue": "string",
+    "spark": "StringType"
+  },
+  "int": {
+    "glue": "int",
+    "spark": "IntegerType"
+  },
+  "float": {
+    "glue": "float",
+    "spark": "FloatType"
+  },
+  "boolean": {
+    "glue": "boolean",
+    "spark": "BooleanType"
+  },
+  "datetime": {
+    "glue": "timestamp",
+    "spark": "TimestampType"
+  },
+  "date": {
+    "glue": "date",
+    "spark": "DateType"
+  },
+  "double": {
+    "glue": "double",
+    "spark": "DoubleType"
+  },
+  "long": {
+    "glue": "bigint",
+    "spark": "LongType"
+  }
+}
