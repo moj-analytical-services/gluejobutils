@@ -2,11 +2,7 @@ import pandas as pd
 import os
 import pkg_resources
 import json
-# import pyspark.sql.types
-
-from dataengineeringutils.utils import read_json
-
-from dataengineeringutils.datatypes import translate_metadata_type_to_type
+import pyspark.sql.types
 
 def translate_metadata_type_to_type(column_type, target_type="glue"):
 
