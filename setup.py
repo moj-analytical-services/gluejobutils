@@ -4,7 +4,7 @@ from setuptools import setup
 setup(name='gluejobutils',
       version='0.1',
       description='Python 2.7 utils for glue jobs',
-      url='https://github.com/RobinL/gluejobutils'
+      url='https://github.com/RobinL/gluejobutils',
       author='Robin Linacre',
       author_email='robinlinacre@hotmail.com',
       license='MIT',
