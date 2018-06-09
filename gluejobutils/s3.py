@@ -1,6 +1,6 @@
 from gluejobutils.datatypes import translate_metadata_type_to_type, get_customschema_from_metadata
 import json
-
+import boto3
 s3_resource = boto3.resource('s3')
 
 def s3_path_to_bucket_key(path):
