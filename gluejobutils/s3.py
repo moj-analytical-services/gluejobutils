@@ -1,4 +1,4 @@
-# from gluejobutils.datatypes import translate_metadata_type_to_type, get_customschema_from_metadata
+from gluejobutils.datatypes import translate_metadata_type_to_type, get_customschema_from_metadata
 from gluejobutils.utils import add_slash, remove_slash
 import json
 import boto3
