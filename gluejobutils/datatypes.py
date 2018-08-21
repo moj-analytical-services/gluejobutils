@@ -1,7 +1,8 @@
 import os
 import pkg_resources
 import json
-import pyspark.sql.types
+import pyspark
+import pyspark.sql.functions as F
 
 from gluejobutils.s3 import read_json_from_s3
 from gluejobutils.utils import read_json
@@ -17,7 +18,6 @@ def translate_metadata_type_to_type(column_type, target_type="glue"):
         return lookup[column_type][target_type]
     except:
         raise KeyError("You attempted to lookup column type {}, but this cannot be found in data_type_conversion.csv".format(column_type))
-
 
 def create_spark_schema_from_metadata(metadata, exclude_cols = [], non_nullable_cols = []):
     """
@@ -48,3 +48,24 @@ def create_spark_schema_from_metadata_file(filepath, exclude_cols = [], non_null
     else :
         metadata = read_json(filepath)
     return create_spark_schema_from_metadata(metadata, exclude_cols=exclude_cols, non_nullable_cols=non_nullable_cols)
+
+def align_df_to_meta(df, meta, exclude_columns = [], null_missing_cols = False) :
+
+    """
+    Casts the columns in dataframe provided to the meta data dictionary provided
+    """
+    meta_cols = [m for m in meta['columns'] if m['name'] not in exclude_columns]
+
+    df_cols = df.columns
+    for m in meta_cols :
+        this_type = getattr(pyspark.sql.types, translate_metadata_type_to_type(m["type"], "spark"))
+        if m['name'] in df_cols :
+            df = df.withColumn(m['name'], df[m['name']].cast(this_type))
+        elif null_missing_cols :
+            df = df.withColumn(m['name'], F.lit(None).cast(this_type))
+        else :
+            raise ValueError("ETL_ERROR: Column name in meta ({}) not in dataframe. Set null_missing_cols to True if you wish to null missing cols. Columns in dataframe {}".format(m['name'], ", ".join(df_cols)))
+    
+    df = df.select([x['name'] for x in meta_cols])
+    
+    return df

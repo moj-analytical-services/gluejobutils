@@ -28,6 +28,9 @@ def s3_path_to_bucket_key(s3_path):
     return bucket, key
 
 def spark_read_csv_using_metadata_path(spark, metadata_path, csv_path, **kwargs) :
+    """
+    Returns a csv read from S3 using spark. Schema is derived from the meta data.
+    """
     schema = create_spark_schema_from_metadata_file(metadata_path)
     df = spark.read.csv(csv_path, schema=schema, **kwargs)
     return df

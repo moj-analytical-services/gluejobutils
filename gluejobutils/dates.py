@@ -1,6 +1,8 @@
 def convert_all_date_cols_to_string(df):
     """
-    Used because Parquet format doesn't yet support the datetype
+    DEPRECATED - parquet now supports dates but keeping for dependencies.
+
+    Used because Parquet format doesn't yet support the datetype.
     """
 
     date_cols = [f.name for f in df.schema if f.dataType.simpleString() == 'date']
