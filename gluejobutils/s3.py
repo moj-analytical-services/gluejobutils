@@ -17,7 +17,6 @@ def bucket_key_to_s3_path(bucket, key) :
     """
     Takes an S3 bucket and key combination and returns the full S3 path to that location.
     """
-    key = add_slash(key)
     return 's3://{}/{}'.format(bucket, key)
 
 def s3_path_to_bucket_key(s3_path):
@@ -54,12 +53,14 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
-
 def get_filepaths_from_s3_folder(s3_folder_path, parquet = False) :
     """
     Get a list of filepaths from a bucket. If parquet is set to True then only return a distinct list of folder
     paths that contain files with a .parquet extension.
     """
+    if not isinstance(parquet, bool) :
+        raise TypeError('input param parquet must be logical (True/False)')
+
     s3_folder_path = add_slash(s3_folder_path)
     bucket, key = s3_path_to_bucket_key(s3_folder_path)
 
@@ -78,25 +79,34 @@ def copy_s3_folder_contents_to_new_folder(old_s3_folder_path, new_s3_folder_path
     old_s3_folder_path = add_slash(old_s3_folder_path)
     new_s3_folder_path = add_slash(new_s3_folder_path)
 
-    old_bucket, old_obj_key = s3_path_to_bucket_key(old_s3_folder_path)
-    all_old_filepaths = get_filepaths_from_s3_folder(old_bucket, old_obj_key)
+    all_old_filepaths = get_filepaths_from_s3_folder(old_s3_folder_path)
     for ofp in all_old_filepaths :
         nfp = ofp.replace(old_s3_folder_path, new_s3_folder_path)
         copy_s3_object(ofp, nfp)
 
+def delete_s3_object(s3_path) :
+    """
+    Deletes the file at the s3_path given.
+    """
+    b, o = s3_path_to_bucket_key(s3_path)
+    s3_resource.Object(b, o).delete()
+
 def delete_s3_folder_contents(s3_folder_path) :
-    bucket, folder_path = s3_path_to_bucket_key(s3_folder_path)
-    folder_path = add_slash(folder_path)
-    all_filepaths = get_filepaths_from_s3_folder(bucket, folder_path)
+    """
+    Deletes all files within the s3_folder_path given given.
+    """
+    s3_folder_path = add_slash(s3_folder_path)
+    all_filepaths = get_filepaths_from_s3_folder(s3_folder_path)
     for f in all_filepaths :
-        b, o = s3_path_to_bucket_key(f)
-        s3_resource.Object(b, o).delete()
+        delete_s3_object(f)
 
 def copy_s3_object(old_s3_path, new_s3_path) :
     """
     Copies a file in S3 from one location to another.
     """
-    new_bucket, new_key = s3_path_to_bucket_key(old_s3_path)
+    new_bucket, new_key = s3_path_to_bucket_key(new_s3_path)
+    if 's3://' in old_s3_path :
+        old_s3_path = old_s3_path.replace('s3://', '')
     s3_resource.Object(new_bucket, new_key).copy_from(CopySource=old_s3_path)
 
 # https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
