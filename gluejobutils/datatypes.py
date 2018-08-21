@@ -7,7 +7,9 @@ from gluejobutils.s3 import read_json_from_s3
 from gluejobutils.utils import read_json
 
 def translate_metadata_type_to_type(column_type, target_type="glue"):
-
+    """
+    Uses json stored in package to convert generic meta data types to glue or spark data types.
+    """
     io = pkg_resources.resource_stream(__name__, "data/data_type_conversion.json")
     lookup = json.load(io)
 
@@ -18,7 +20,11 @@ def translate_metadata_type_to_type(column_type, target_type="glue"):
 
 
 def create_spark_schema_from_metadata(metadata, exclude_cols = [], non_nullable_cols = []):
-
+    """
+    Creates a spark schema from a meta data dictionary.
+    Excluding any column names that are in the exclude_cols list (default is an empty list).
+    To specify any columns that should not be nullable list their names in non_nullable_cols (default is an empty list). 
+    """
     columns = [c for c in metadata["columns"] if c["name"] not in exclude_cols]
 
     custom_schema = pyspark.sql.types.StructType()
@@ -33,37 +39,12 @@ def create_spark_schema_from_metadata(metadata, exclude_cols = [], non_nullable_
     return custom_schema
 
 def create_spark_schema_from_metadata_file(filepath, exclude_cols = [], non_nullable_cols = []):
+    """
+    Creates a spark schema from a json file that is a meta data dictionary. If filepath starts with s3:// the 
+    function assumes it is an S3 file otherwise it tries to read the file from the local directory.
+    """
     if 's3://' in filepath :
-        meta = 
-    columns = [c for c in metadata["columns"] if c["name"] not in exclude_cols]
-
-    custom_schema = pyspark.sql.types.StructType()
-
-    for c in columns:
-        this_name = c["name"]
-        nullable = this_name not in non_nullable_cols
-        this_type = getattr(pyspark.sql.types, translate_metadata_type_to_type(c["type"], "spark"))
-        this_field = pyspark.sql.types.StructField(this_name, this_type(), nullable)
-        custom_schema.add(this_field)
-        
-    return custom_schema
-
-def create_spark_schema_from_meta_dict(meta, exclude_cols = None) :
-    if meta_to_spark_type_converter is None :
-        meta_to_spark_type_converter = default_meta_to_spark_type_converter
-
-    meta_cols = meta['columns']
-
-    fields = []
-    
-    if exclude_cols :
-        meta_cols = [m for m in meta_cols]
-    for mc in meta_cols :
-        fields.append(StructField(mc['name'], meta_to_spark_type_converter[mc['type']], True))
-
-    return StructType(fields)
-
-def create_spark_schema_from_meta_file(filepath, meta_to_spark_type_converter = None, exclude_cols = None) :
-    meta = read_json(filepath)
-    return create_spark_schema_from_meta_dict(meta, meta_to_spark_type_converter, exclude_cols=exclude_cols)
-
+        metadata = read_json_from_s3(filepath)
+    else :
+        metadata = read_json(filepath)
+    return create_spark_schema_from_metadata(metadata, exclude_cols=exclude_cols, non_nullable_cols=non_nullable_cols)
