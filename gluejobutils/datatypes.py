@@ -67,5 +67,13 @@ def align_df_to_meta(df, meta, exclude_columns = [], null_missing_cols = False) 
             raise ValueError("ETL_ERROR: Column name in meta ({}) not in dataframe. Set null_missing_cols to True if you wish to null missing cols. Columns in dataframe {}".format(m['name'], ", ".join(df_cols)))
     
     df = df.select([x['name'] for x in meta_cols])
-    
+
+    return df
+
+def spark_read_csv_using_metadata_path(spark, metadata_path, csv_path, **kwargs) :
+    """
+    Returns a csv read from S3 using spark. Schema is derived from the meta data.
+    """
+    schema = create_spark_schema_from_metadata_file(metadata_path)
+    df = spark.read.csv(csv_path, schema=schema, **kwargs)
     return df
