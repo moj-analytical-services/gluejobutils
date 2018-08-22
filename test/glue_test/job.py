@@ -182,7 +182,7 @@ if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/dia
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
 if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet') != True :
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
-if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_csv') != False :
+if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/') != False :
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
 print("===> check_for_parquet_data_in_folder ===> OK")     
 
@@ -233,5 +233,51 @@ non_nulls = [s.name for s in schema3 if not s.nullable]
 if non_nulls != ['x','y','z'] :
     raise ValueError('create_spark_schema_from_metadata FAILURE')
 print("===> create_spark_schema_from_metadata ===> OK")
+
+
+### ### ### ### ### ### 
+### align_df_to_meta ###
+### ### ### ### ### ### 
+from gluejobutils import s3
+from gluejobutils import datatypes
+
+csv_path = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
+meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
+meta = s3.read_json_from_s3(meta_path)
+df = spark.read.csv(csv_path, header = True)
+df2 = datatypes.align_df_to_meta(df, meta)
+if df2.count() != df.count() :
+    raise ValueError('align_df_to_meta FAILURE') 
+for dc, dc2 in zip(df.columns, df2.columns) :
+    if dc != dc2 :
+        raise ValueError('align_df_to_meta FAILURE')
+for s, c in zip(df2.schema, meta['columns']) :
+    if s.name != c['name'] :
+        raise ValueError('align_df_to_meta FAILURE')
+    if str(s.dataType) != datatypes.translate_metadata_type_to_type(c['type'], 'spark') :
+        raise ValueError('align_df_to_meta FAILURE')
+
+df3 = datatypes.align_df_to_meta(df, meta, exclude_columns=['x','y','z'])
+if any([e in df3.columns for e in ['x','y','z']]) :
+    raise ValueError('align_df_to_meta FAILURE')
+
+meta['columns'].append({"name" : "date_test", "type" : 'date', 'description' : ''})
+meta['columns'].append({"name" : "datetime_test", "type" : 'datetime', 'description' : ''})
+
+df3 = df3.withColumn('date_test', F.to_date(F.lit("2018-01-01")))
+df3 = df3.withColumn('datetime_test', F.to_timestamp(F.lit("2018-01-01 00:00:00")))
+try :
+    df4 = datatypes.align_df_to_meta(df3, meta)
+except ValueError as e :
+    if 'ETL_ERROR' not in str(e) :
+        raise ValueError('align_df_to_meta FAILURE')
+        
+df4 = datatypes.align_df_to_meta(df3, meta, null_missing_cols=True)
+fr = df4.take(1)[0].asDict()
+if fr["diamond_id"] != 0 or fr["x"] is not None or fr["y"] is not None or fr["z"] is not None :
+    raise ValueError('align_df_to_meta FAILURE')
+print("===> align_df_to_meta ===> OK") 
+
+
 
 job.commit()
