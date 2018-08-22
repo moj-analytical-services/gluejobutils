@@ -60,9 +60,9 @@ def align_df_to_meta(df, meta, exclude_columns = [], null_missing_cols = False) 
     for m in meta_cols :
         this_type = getattr(pyspark.sql.types, translate_metadata_type_to_type(m["type"], "spark"))
         if m['name'] in df_cols :
-            df = df.withColumn(m['name'], df[m['name']].cast(this_type))
+            df = df.withColumn(m['name'], df[m['name']].cast(this_type()))
         elif null_missing_cols :
-            df = df.withColumn(m['name'], F.lit(None).cast(this_type))
+            df = df.withColumn(m['name'], F.lit(None).cast(this_type()))
         else :
             raise ValueError("ETL_ERROR: Column name in meta ({}) not in dataframe. Set null_missing_cols to True if you wish to null missing cols. Columns in dataframe {}".format(m['name'], ", ".join(df_cols)))
     
