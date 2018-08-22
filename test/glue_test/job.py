@@ -186,4 +186,77 @@ if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/dia
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
 print("===> check_for_parquet_data_in_folder ===> OK")     
 
+
+## =====================> DATATYPE MODULE TESTING <========================= ##
+from gluejobutils import datatypes
+
+### ### ### ### ### ### ### ### ### ### ###
+### translate_metadata_type_to_type ###
+### ### ### ### ### ### ### ### ### ### ###
+test_types = {
+    "character" : {"glue" : "string", "spark": "StringType"},
+    "int" : {"glue" : "int", "spark": "IntegerType"},
+    "long" : {"glue" : "bigint", "spark": "LongType"},
+    "float" : {"glue" : "float", "spark": "FloatType"},
+    "double" : {"glue" : "double", "spark": "DoubleType"},
+    "date" : {"glue" : "date", "spark": "DateType"},
+    "datetime" : {"glue" : "timestamp", "spark": "TimestampType"},
+    "boolean" : {"glue" : "boolean", "spark": "BooleanType"}
+}
+for k in test_types.keys() :
+    if datatypes.translate_metadata_type_to_type(k, "glue") != test_types[k]["glue"] :
+        raise ValueError("translate_metadata_type_to_type FAILURE")
+    if datatypes.translate_metadata_type_to_type(k, "spark") != test_types[k]["spark"] :
+        raise ValueError("translate_metadata_type_to_type FAILURE")
+
+print("===> translate_metadata_type_to_type ===> OK")   
+
+### ### ### ### ### ### ### ### ### ### ###
+### create_spark_schema_from_metadata ###
+### ### ### ### ### ### ### ### ### ### ###
+metadata = s3.read_json_from_s3('s3://alpha-gluejobutils/testing/meta_data/diamonds.json')
+schema = datatypes.create_spark_schema_from_metadata(metadata)
+schema2 = datatypes.create_spark_schema_from_metadata_file('s3://alpha-gluejobutils/testing/meta_data/diamonds.json')
+if schema != schema2 :
+    raise ValueError("create_spark_schema_from_metadata | create_spark_schema_from_metadata_file FAILURE")
+    
+for s, m in zip(schema, metadata['columns']) :
+    if s.name != m['name'] :
+        raise ValueError('create_spark_schema_from_metadata FAILURE')
+        
+schema3 = datatypes.create_spark_schema_from_metadata(metadata, exclude_cols=['carat'], non_nullable_cols=['x','y','z'])        
+if 'carat' in [s.name for s in schema3] :
+    raise ValueError('create_spark_schema_from_metadata FAILURE')
+
+    
+non_nulls = [s.name for s in schema3 if not s.nullable]
+if non_nulls != ['x','y','z'] :
+    raise ValueError('create_spark_schema_from_metadata FAILURE')
+print("===> create_spark_schema_from_metadata ===> OK")
+
+
+### ### ### ### ### ### ### ### ### ### ###
+### spark_read_csv_using_metadata_path  ###
+### ### ### ### ### ### ### ### ### ### ###
+csv_path = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
+meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
+df = datatypes.spark_read_csv_using_metadata_path(spark, meta_path, csv_path, header = True)
+df2 = spark.read.csv(csv_path, inferSchema=True, header = True)
+if df.count() != df2.count() :
+    raise ValueError('spark_read_csv_using_metadata_path FAILURE')
+
+for c, m in zip(df.columns, metadata['columns']) :
+    if c != m['name'] :
+        raise ValueError('spark_read_csv_using_metadata_path FAILURE')
+
+# csv_path = 's3://alpha-gluejobutils/testing/data/case_subject/'
+# meta_path = 's3://alpha-gluejobutils/testing/meta_data/case_subject.json'
+
+# df4 = datatypes.spark_read_csv_using_metadata_path(spark, meta_path, csv_path, header = True)
+# in_count = df4.count()
+# expected_in_count = 269356
+# if in_count != expected_in_count :
+#     raise ValueError('Count mismatch. Expected: {}, got : {}'.format(expected_in_count, in_count))
+print("===> spark_read_csv_using_metadata_path ===> OK")
+
 job.commit()

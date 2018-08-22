@@ -12,7 +12,6 @@ def main(job_role) :
     zf.write(os.path.join(package_name, 'cleaning.py'))
     zf.write(os.path.join(package_name, 'datatypes.py'))
     zf.write(os.path.join(package_name, 'dates.py'))
-    zf.write(os.path.join(package_name, 'json_funcs.py'))
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
     zf.close()

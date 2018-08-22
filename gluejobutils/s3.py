@@ -1,8 +1,8 @@
-from gluejobutils.datatypes import translate_metadata_type_to_type, create_spark_schema_from_metadata_file
-from gluejobutils.utils import add_slash, remove_slash
 import json
 import boto3
 import botocore
+
+from gluejobutils.utils import add_slash, remove_slash
 
 try :
     # python 2.7
@@ -26,14 +26,6 @@ def s3_path_to_bucket_key(s3_path):
     s3_path = s3_path.replace("s3://", "")
     bucket, key = s3_path.split('/', 1)
     return bucket, key
-
-def spark_read_csv_using_metadata_path(spark, metadata_path, csv_path, **kwargs) :
-    """
-    Returns a csv read from S3 using spark. Schema is derived from the meta data.
-    """
-    schema = create_spark_schema_from_metadata_file(metadata_path)
-    df = spark.read.csv(csv_path, schema=schema, **kwargs)
-    return df
 
 def read_json_from_s3(s3_path, encoding = 'utf-8') :
     """
