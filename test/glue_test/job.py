@@ -210,7 +210,7 @@ for k in test_types.keys() :
         raise ValueError("translate_metadata_type_to_type FAILURE")
 
 print("===> translate_metadata_type_to_type ===> OK")   
-
+d
 ### ### ### ### ### ### ### ### ### ### ###
 ### create_spark_schema_from_metadata ###
 ### ### ### ### ### ### ### ### ### ### ###
@@ -233,30 +233,5 @@ non_nulls = [s.name for s in schema3 if not s.nullable]
 if non_nulls != ['x','y','z'] :
     raise ValueError('create_spark_schema_from_metadata FAILURE')
 print("===> create_spark_schema_from_metadata ===> OK")
-
-
-### ### ### ### ### ### ### ### ### ### ###
-### spark_read_csv_using_metadata_path  ###
-### ### ### ### ### ### ### ### ### ### ###
-csv_path = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
-meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
-df = datatypes.spark_read_csv_using_metadata_path(spark, meta_path, csv_path, header = True)
-df2 = spark.read.csv(csv_path, inferSchema=True, header = True)
-if df.count() != df2.count() :
-    raise ValueError('spark_read_csv_using_metadata_path FAILURE')
-
-for c, m in zip(df.columns, metadata['columns']) :
-    if c != m['name'] :
-        raise ValueError('spark_read_csv_using_metadata_path FAILURE')
-
-# csv_path = 's3://alpha-gluejobutils/testing/data/case_subject/'
-# meta_path = 's3://alpha-gluejobutils/testing/meta_data/case_subject.json'
-
-# df4 = datatypes.spark_read_csv_using_metadata_path(spark, meta_path, csv_path, header = True)
-# in_count = df4.count()
-# expected_in_count = 269356
-# if in_count != expected_in_count :
-#     raise ValueError('Count mismatch. Expected: {}, got : {}'.format(expected_in_count, in_count))
-print("===> spark_read_csv_using_metadata_path ===> OK")
 
 job.commit()
