@@ -14,6 +14,8 @@ def main(job_role) :
     zf.write(os.path.join(package_name, 'dates.py'))
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
+    zf.write(os.path.join(package_name, 'scd.py'))
+    zf.write(os.path.join(package_name, 'data/data_type_conversion.json'))
     zf.close()
 
     g = GlueJob('test/glue_test/', bucket = 'alpha-gluejobutils', job_role = job_role)
