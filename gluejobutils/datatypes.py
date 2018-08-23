@@ -17,7 +17,7 @@ def translate_metadata_type_to_type(column_type, target_type="glue"):
     try:
         return lookup[column_type][target_type]
     except:
-        raise KeyError("You attempted to lookup column type {}, but this cannot be found in data_type_conversion.csv".format(column_type))
+        raise KeyError("You attempted to lookup column type {}, but this cannot be found in data_type_conversion.json".format(column_type))
 
 def create_spark_schema_from_metadata(metadata, exclude_cols = [], non_nullable_cols = []):
     """
@@ -68,12 +68,4 @@ def align_df_to_meta(df, meta, exclude_columns = [], null_missing_cols = False) 
     
     df = df.select([x['name'] for x in meta_cols])
 
-    return df
-
-def spark_read_csv_using_metadata_path(spark, metadata_path, csv_path, **kwargs) :
-    """
-    Returns a csv read from S3 using spark. Schema is derived from the meta data.
-    """
-    schema = create_spark_schema_from_metadata_file(metadata_path)
-    df = spark.read.csv(csv_path, schema=schema, **kwargs)
     return df
