@@ -8,9 +8,10 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 
-from gluejobutils import s3, utils
+from gluejobutils import s3, utils, scd
 
-from datetime import datetime, timedelta
+import datetime
+from pyspark.sql import Row, functions as F
 
 from StringIO import StringIO
 
@@ -182,9 +183,9 @@ if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/dia
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
 if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet') != True :
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
-if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/') != False :
+if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_csv') != False :
     raise ValueError('check_for_parquet_data_in_folder FAILURE')
-print("===> check_for_parquet_data_in_folder ===> OK")     
+print("===> check_for_parquet_data_in_folder ===> OK")      
 
 
 ## =====================> DATATYPE MODULE TESTING <========================= ##
@@ -210,7 +211,7 @@ for k in test_types.keys() :
         raise ValueError("translate_metadata_type_to_type FAILURE")
 
 print("===> translate_metadata_type_to_type ===> OK")   
-d
+
 ### ### ### ### ### ### ### ### ### ### ###
 ### create_spark_schema_from_metadata ###
 ### ### ### ### ### ### ### ### ### ### ###
@@ -279,5 +280,135 @@ if fr["diamond_id"] != 0 or fr["x"] is not None or fr["y"] is not None or fr["z"
 print("===> align_df_to_meta ===> OK") 
 
 
+## =====================> SCD MODULE TESTING <========================= ##
+### ### ### ### ### ### ### ### 
+### dea_record_start_date ###
+### ### ### ### ### ### ### ### 
+csv_path = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
+meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
+start_date = '2018-01-01'
+start_datetime = '2018-01-01 01:00:00'
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df = spark.read.csv(csv_path, header = True, schema = meta)
+df = scd.set_dea_record_start_datetime(df, '2018-01-01 01:00:00')
+
+if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime :
+    raise ValueError('set_dea_record_start_date FAILURE')
+    
+df = scd.set_dea_record_start_datetime(df, '12:34:56 31/12/2017', datetime_format="HH:mm:ss dd/MM/yyyy")
+if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2017-12-31 12:34:56' :
+    raise ValueError('set_dea_record_start_datetime FAILURE')
+
+if not isinstance(df.take(1)[0].asDict()['dea_record_start_datetime'], datetime.datetime) :
+    raise ValueError('dea_record_start_date FAILURE')
+print("===> set_dea_record_start_datetime ===> OK") 
+
+
+### ### ### ### ### ### ### ### 
+### set_dea_record_end_date ###
+### ### ### ### ### ### ### ### 
+df = scd.set_dea_record_end_datetime(df)
+end_datetime = '2999-01-01 00:00:00'
+if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
+    raise ValueError('dea_record_end_date FAILURE')
+if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
+    raise ValueError('dea_record_end_date FAILURE')
+print("===> set_dea_record_end_datetime ===> OK") 
+
+
+### ### ### ### ### ### ### ### 
+### init_dea_record_dates ###
+### ### ### ### ### ### ### ### 
+start_datetime = '2017-01-01 12:51:43'
+end_datetime = '2999-01-01 00:00:00'
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df = spark.read.csv(csv_path, header = True, schema=meta)
+df = scd.init_dea_record_datetimes(df, start_datetime)
+
+if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime :
+    raise ValueError('init_dea_record_dates FAILURE')
+if not isinstance(df.take(1)[0].asDict()['dea_record_start_datetime'], datetime.datetime) :
+    raise ValueError('init_dea_record_dates FAILURE')
+if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
+    raise ValueError('init_dea_record_dates FAILURE')
+if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
+    raise ValueError('init_dea_record_dates FAILURE')
+print("===> init_dea_record_datetimes ===> OK")
+
+### ### ### ### ### ### ### ### ### ###
+### update_dea_record_end_datetime ###
+### ### ### ### ### ### ### ### ### ###
+test1_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 1, 23, 45)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 23, 45), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test2_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 1, 23, 45)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 23, 45), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test3_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df_old = spark.read.csv(csv_path, header = True, schema=meta)
+df_new = spark.read.csv(csv_path, header = True).filter('diamond_id < 1000')
+
+df_old = scd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_new = scd.init_dea_record_datetimes(df_new, '2018-01-01 01:23:45')
+
+df = df_old.union(df_new)
+df = scd.update_dea_record_end_datetime(df, 'diamond_id')
+
+if df.count() != 54940 :
+    raise ValueError('update_dea_record_end_date FAILURE')
+    
+df.createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df ORDER BY dea_record_start_datetime, dea_record_end_datetime")
+test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df WHERE diamond_id < 1000 ORDER BY dea_record_start_datetime, dea_record_end_datetime")
+test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df WHERE diamond_id >= 1000 ORDER BY dea_record_start_datetime, dea_record_end_datetime")
+
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test2.collect()) != sorted(test2_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test3.collect()) != sorted(test3_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+print("===> update_dea_record_end_datetime ===> OK")
+
+
+### ### ### ### ### ### ### ###
+### upsert_table_by_record ###
+### ### ### ### ### ### ### ###
+db_table_path = 's3://{}/database/table1/'.format(bucket)
+db_table_path_tmp = 's3://{}/database/table1_tmp/'.format(bucket)
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df_old = spark.read.csv(csv_path, header = True, schema=meta)
+df_old = scd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_old.write.mode('overwrite').parquet(db_table_path)
+
+df_new = spark.read.csv(csv_path, header = True, schema=meta).filter('diamond_id < 1000')
+df_new = scd.init_dea_record_datetimes(df_new, '2018-01-01 01:23:45')
+
+scd.upsert_table_by_record(spark=spark, new_df=df_new, table_db_path=db_table_path, update_by_cols = ['diamond_id'], coalesce_size = 4, update_latest_records_only = True)
+
+if spark.read.parquet(db_table_path_tmp).count() != 54940 :
+    raise ValueError('upsert_table_by_record FAILURE')
+if spark.read.parquet(db_table_path_tmp+'dea_record_update_type=old/').count() != 52940 :
+    raise ValueError('upsert_table_by_record FAILURE')
+if spark.read.parquet(db_table_path_tmp+'dea_record_update_type=new/').count() != 2000 :
+    raise ValueError('upsert_table_by_record FAILURE')
+
+spark.read.parquet(db_table_path_tmp).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='new'")
+test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='old'")
+
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test2.collect()) != sorted(test2_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test3.collect()) != sorted(test3_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+print("===> upsert_table_by_record ===> OK")
 
 job.commit()
