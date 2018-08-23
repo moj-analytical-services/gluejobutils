@@ -47,27 +47,25 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
-def get_filepaths_from_s3_folder(s3_folder_path, parquet = False) :
+def get_filepaths_from_s3_folder(s3_folder_path, extension = None) :
     """
-    Get a list of filepaths from a bucket. If parquet is set to True then only return a distinct list of folder
-    paths that contain files with a .parquet extension.
+    Get a list of filepaths from a bucket. If extension is set to a string then only return files with that extension otherwise if set to None (default) all filepaths are returned.
     """
-    if not isinstance(parquet, bool) :
-        raise TypeError('input param parquet must be logical (True/False)')
+    if extension is None :
+        extension = ''
+    elif extension[0] != '.' :
+        extension = '.'+extension
 
     s3_folder_path = add_slash(s3_folder_path)
     bucket, key = s3_path_to_bucket_key(s3_folder_path)
 
     s3b = s3_resource.Bucket(bucket)
     obs = s3b.objects.filter(Prefix = key)
-    ob_keys = [o.key for o in obs]
+    ob_keys = [o.key for o in obs if o.key.endswith(extension) and o.size != 0]
+    paths = sorted([bucket_key_to_s3_path(bucket, o) for o in ob_keys])
     
-    if parquet :
-        ob_keys = list(set(["/".join(o.split('/')[:-1]) + '/' for o in ob_keys if o[-8:] == '.parquet']))
+    return paths
 
-    ob_keys = sorted([bucket_key_to_s3_path(bucket, o) for o in ob_keys])
-
-    return ob_keys
 
 def copy_s3_folder_contents_to_new_folder(old_s3_folder_path, new_s3_folder_path) :
     old_s3_folder_path = add_slash(old_s3_folder_path)
@@ -121,10 +119,15 @@ def check_for_s3_file(s3_path) :
         # The object does exist.
         return True
 
-def check_for_parquet_data_in_folder(s3_folder_path) :
+def folder_contains_only_files_with_extension(s3_folder_path, extension = '.parquet') :
     """
-    Checks if a folder contains parquet data. Used to test if parquet data is in s3 folder.
-    exists = check_for_parquet_data_in_folder("s3://my-bucket/data/")
+    Checks if a folder contains only parquet data. Used to test if parquet data is in s3 folder.
+    exists = folder_contains_only_files_with_extension("s3://my-bucket/data/").
+    Or for csvs
+    exists = folder_contains_only_files_with_extension("s3://my-bucket/data/", '.csv')
     """
-    s3_folder_path = add_slash(s3_folder_path)
-    return len(get_filepaths_from_s3_folder(s3_folder_path, parquet = True)) == 1
+    if extension[0] != '.' :
+        extension = '.' + extension
+    all_p = get_filepaths_from_s3_folder(s3_folder_path)
+    all_p_parquet = [a for a in all_p if a.endswith(extension)]
+    return len(all_p_parquet) == len(all_p)

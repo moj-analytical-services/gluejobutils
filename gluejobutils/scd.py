@@ -5,10 +5,9 @@ import os
 import boto3
 import botocore
 
-from gluejobutils.s3 import s3_path_to_bucket_key, check_for_parquet_data_in_folder
+from gluejobutils.s3 import s3_path_to_bucket_key, folder_contains_only_files_with_extension
 from gluejobutils.utils import remove_slash, add_slash, list_to_sql_select
 
-import pyspark.sql.functions as F
 # Need to be able to run script on glue (using 2.7) or on deployed docker (using 3.6)
 try :
     # python 2.7
@@ -103,7 +102,7 @@ def upsert_table_by_record(spark, new_df, table_db_path, update_by_cols, coalesc
     tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
     tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
 
-    if check_for_parquet_data_in_folder(table_db_path) :
+    if folder_contains_only_files_with_extension(table_db_path) :
         new_keys = new_df.select(*update_by_cols)
         new_keys.createOrReplaceTempView('update_keys')
         spark.read.parquet(table_db_path).cache().createOrReplaceTempView('current_table')
