@@ -111,16 +111,20 @@ for o1, o2 in zip(out1, out2) :
     if o1 != o2 :
         raise ValueError('get_filepaths_from_s3_folder FAILURE')
         
-out3 = s3.get_filepaths_from_s3_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet/', parquet=True)
-if out3[0] != 's3://alpha-gluejobutils/testing/data/diamonds_parquet/' :
+out3 = s3.get_filepaths_from_s3_folder('s3://alpha-gluejobutils/testing/data/', extension='.parquet')
+if 'diamonds_parquet' not in out3[0] :
     raise ValueError('get_filepaths_from_s3_folder FAILURE')
 if len(out3) != 1 :
     raise ValueError('get_filepaths_from_s3_folder FAILURE')
 
-out4 = s3.get_filepaths_from_s3_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet', parquet=True)
-if out4[0] != 's3://alpha-gluejobutils/testing/data/diamonds_parquet/' :
+out4 = s3.get_filepaths_from_s3_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet', extension='parquet')
+if 'diamonds_parquet' not in out4[0] :
     raise ValueError('get_filepaths_from_s3_folder FAILURE')
 if len(out4) != 1 :
+    raise ValueError('get_filepaths_from_s3_folder FAILURE')
+    
+out5 = s3.get_filepaths_from_s3_folder('s3://alpha-gluejobutils/testing/data/')
+if any([p.endswith('/') or '_SUCCESS' in p for p in out5]) :
     raise ValueError('get_filepaths_from_s3_folder FAILURE')
 print("===> get_filepaths_from_s3_folder ===> OK")
 
@@ -177,15 +181,22 @@ print("===> delete_s3_folder_contents ===> OK")
 
 
 ### ### ### ### ### ### ### ### ### ### ###
-### check_for_parquet_data_in_folder ###
+### folder_contains_only_files_with_extension ###
 ### ### ### ### ### ### ### ### ### ### ###
-if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet/') != True :
-    raise ValueError('check_for_parquet_data_in_folder FAILURE')
-if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_parquet') != True :
-    raise ValueError('check_for_parquet_data_in_folder FAILURE')
-if s3.check_for_parquet_data_in_folder('s3://alpha-gluejobutils/testing/data/diamonds_csv') != False :
-    raise ValueError('check_for_parquet_data_in_folder FAILURE')
-print("===> check_for_parquet_data_in_folder ===> OK")      
+s3_folder_path2 = 's3://alpha-gluejobutils/database/table1/'
+s3_folder_path3 = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
+s3_folder_path4 = 's3://alpha-gluejobutils/testing/data/diamonds_parquet/'
+s3_folder_path5 = 's3://alpha-gluejobutils/testing/data/'
+
+if s3.folder_contains_only_files_with_extension(s3_folder_path2) != True :
+    raise ValueError('folder_contains_only_files_with_extension FAILURE')
+if s3.folder_contains_only_files_with_extension(s3_folder_path3, extension = 'csv') != True : 
+    raise ValueError('folder_contains_only_files_with_extension FAILURE')
+if s3.folder_contains_only_files_with_extension(s3_folder_path4) != True :
+    raise ValueError('folder_contains_only_files_with_extension FAILURE')
+if s3.folder_contains_only_files_with_extension(s3_folder_path5) != False :
+    raise ValueError('folder_contains_only_files_with_extension FAILURE')
+print("===> folder_contains_only_files_with_extension ===> OK")    
 
 
 ## =====================> DATATYPE MODULE TESTING <========================= ##
