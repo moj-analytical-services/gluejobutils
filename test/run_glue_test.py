@@ -9,7 +9,6 @@ def main(job_role) :
     to_path = f'test/glue_test/glue_py_resources/{package_name}.zip'
     zf = zipfile.ZipFile(to_path, "w")
     zf.write(os.path.join(package_name, '__init__.py'))
-    zf.write(os.path.join(package_name, 'cleaning.py'))
     zf.write(os.path.join(package_name, 'datatypes.py'))
     zf.write(os.path.join(package_name, 'dates.py'))
     zf.write(os.path.join(package_name, 's3.py'))
