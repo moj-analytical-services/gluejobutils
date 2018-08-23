@@ -129,5 +129,6 @@ def folder_contains_only_files_with_extension(s3_folder_path, extension = '.parq
     if extension[0] != '.' :
         extension = '.' + extension
     all_p = get_filepaths_from_s3_folder(s3_folder_path)
-    all_p_parquet = [a for a in all_p if a.endswith(extension)]
-    return len(all_p_parquet) == len(all_p)
+    all_p_extension = [a for a in all_p if a.endswith(extension)]
+    
+    return len(all_p_extension) == len(all_p) and len(all_p_extension) != 0

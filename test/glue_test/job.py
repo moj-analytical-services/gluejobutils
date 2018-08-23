@@ -183,11 +183,14 @@ print("===> delete_s3_folder_contents ===> OK")
 ### ### ### ### ### ### ### ### ### ### ###
 ### folder_contains_only_files_with_extension ###
 ### ### ### ### ### ### ### ### ### ### ###
+s3_folder_path1 = 's3://alpha-gluejobutils/database/table1/nothing'
 s3_folder_path2 = 's3://alpha-gluejobutils/database/table1/'
 s3_folder_path3 = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
 s3_folder_path4 = 's3://alpha-gluejobutils/testing/data/diamonds_parquet/'
 s3_folder_path5 = 's3://alpha-gluejobutils/testing/data/'
 
+if s3.folder_contains_only_files_with_extension(s3_folder_path1) != False:
+    raise ValueError('folder_contains_only_files_with_extension FAILURE')
 if s3.folder_contains_only_files_with_extension(s3_folder_path2) != True :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
 if s3.folder_contains_only_files_with_extension(s3_folder_path3, extension = 'csv') != True : 
@@ -196,7 +199,8 @@ if s3.folder_contains_only_files_with_extension(s3_folder_path4) != True :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
 if s3.folder_contains_only_files_with_extension(s3_folder_path5) != False :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
-print("===> folder_contains_only_files_with_extension ===> OK")    
+
+print("===> folder_contains_only_files_with_extension ===> OK")  
 
 
 ## =====================> DATATYPE MODULE TESTING <========================= ##
@@ -292,6 +296,14 @@ print("===> align_df_to_meta ===> OK")
 
 
 ## =====================> SCD MODULE TESTING <========================= ##
+
+### ### ### ### ### ### ### ### 
+###python and java timestamp ###
+### ### ### ### ### ### ### ### 
+if datetime.datetime.strptime(scd.static_record_end_datetime, scd.standard_datetime_format_python).strftime(scd.standard_datetime_format_python) != scd.static_record_end_datetime :
+    raise ValueError("python and java timestamp formats do not match")
+print("===> python to java timestamp convertion ===> OK")
+
 ### ### ### ### ### ### ### ### 
 ### dea_record_start_date ###
 ### ### ### ### ### ### ### ### 
@@ -314,7 +326,6 @@ if not isinstance(df.take(1)[0].asDict()['dea_record_start_datetime'], datetime.
     raise ValueError('dea_record_start_date FAILURE')
 print("===> set_dea_record_start_datetime ===> OK") 
 
-
 ### ### ### ### ### ### ### ### 
 ### set_dea_record_end_date ###
 ### ### ### ### ### ### ### ### 
@@ -323,6 +334,10 @@ end_datetime = '2999-01-01 00:00:00'
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
     raise ValueError('dea_record_end_date FAILURE')
 if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
+    raise ValueError('dea_record_end_date FAILURE')
+
+df = scd.set_dea_record_end_datetime(df, '2018-01-01 01:00:00')
+if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2018-01-01 01:00:00' :
     raise ValueError('dea_record_end_date FAILURE')
 print("===> set_dea_record_end_datetime ===> OK") 
 
