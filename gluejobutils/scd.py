@@ -27,6 +27,7 @@ from itertools import chain
 
 static_record_end_datetime = '2999-01-01 00:00:00'
 standard_datetime_format = 'yyyy-MM-dd HH:mm:ss'
+standard_datetime_format_python = '%Y-%m-%d %H:%M:%S'
 
 def set_dea_record_start_datetime(df, datetime_string, datetime_format=standard_datetime_format) :
     """
@@ -38,12 +39,15 @@ def set_dea_record_start_datetime(df, datetime_string, datetime_format=standard_
     
     return df
 
-def set_dea_record_end_datetime(df) :
+def set_dea_record_end_datetime(df, datetime_string = None) :
     """
-    Sets the column dea_record_end_datetime to the datetime 2999-01-01 00:00:00.
+    Sets the column dea_record_end_datetime the speficied datetime_string. Default value is to the datetime 2999-01-01 00:00:00.
     Returns a df.
     """
-    df = df.withColumn('dea_record_end_datetime', F.to_timestamp(F.lit(static_record_end_datetime), standard_datetime_format))
+    if datetime_string is None :
+        datetime_string = static_record_end_datetime
+
+    df = df.withColumn('dea_record_end_datetime', F.to_timestamp(F.lit(datetime_string), standard_datetime_format))
     return df
 
 def init_dea_record_datetimes(df, datetime_string, datetime_format=standard_datetime_format) :
@@ -139,3 +143,37 @@ def upsert_table_by_record(spark, new_df, table_db_path, update_by_cols, coalesc
         new_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_new_partition)
 
 
+def upsert_table_partition_with_new_df(spark, new_df, table_db_base_path, partition_path, coalesce_size = 4) :
+    """
+    Replaces a data chunk in the partition path and sets all dea_record_start_datetimes to the dea_record_start_datetime in new_df.
+    This function expects all rows in new_df to have the same dea_record_start_datetime and dea_record_end_datetime (this must be set to the static_record_end_datetime i.e. new data - this function does not work for late arriving facts) 
+    """
+    
+    new_df.createOrReplaceTempView('new_df')
+    df_distinct_rows = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM new_df").collect()
+    dea_dict = df_distinct_rows[0].asDict()
+
+    if len(df_distinct_rows) != 1 :
+        raise ValueError("new_df must have the same dea_record_start_datetime for all rows")
+    if dea_dict['dea_record_end_datetime'].strftime(standard_datetime_format_python) != static_record_end_datetime :
+        raise ValueError("new_df must have a dea_record_satrt_datetime set to " + static_record_end_datetime)
+        
+    bucket, key = s3_path_to_bucket_key(table_db_base_path)
+    table_base_path, table_name = os.path.split(remove_slash(key))
+    
+    full_path_to_db_partition = os.path.join(table_db_base_path, partition_path)
+    
+    tmp_table_db_path = os.path.join(table_base_path, table_name + '_tmp', partition_path)
+    tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
+    tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
+
+    if folder_contains_only_files_with_extension(full_path_to_db_partition) :
+        current_df = spark.read.parquet(full_path_to_db_partition)
+        # Set current df's end date to the new_df start date
+        current_df = set_dea_record_end_datetime(current_df, dea_dict['dea_record_start_datetime'].strftime(standard_datetime_format_python))
+        # Write current df to old partition
+        current_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_old_partition)
+        new_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_new_partition)
+    else :
+        # Write data to new partition
+        new_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_new_partition)
