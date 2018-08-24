@@ -80,7 +80,7 @@ def update_dea_record_end_datetime(df, partition_by, order_by = 'dea_record_star
 
     return df
 
-def upsert_table_by_record(spark, new_df, table_db_path, update_by_cols, coalesce_size = 4, update_latest_records_only = True) :
+def upsert_table_by_record(spark, new_df, table_db_path, update_by_cols, coalesce_size = 4, update_latest_records_only = True, write_back_table_db_path = False) :
     """
     Updates the data that current exists at table_db_path with new_df.
 
@@ -169,11 +169,37 @@ def upsert_table_partition_with_new_df(spark, new_df, table_db_base_path, partit
 
     if folder_contains_only_files_with_extension(full_path_to_db_partition) :
         current_df = spark.read.parquet(full_path_to_db_partition)
-        # Set current df's end date to the new_df start date
-        current_df = set_dea_record_end_datetime(current_df, dea_dict['dea_record_start_datetime'].strftime(standard_datetime_format_python))
+        current_df_non_latest = current_df.filter("dea_record_end_datetime <> to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))
+        current_df_latest = current_df.filter("dea_record_end_datetime = to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))
+
+        # Set latest rows of current df's end date to the new_df start date
+        current_df_latest = set_dea_record_end_datetime(current_df_latest, dea_dict['dea_record_start_datetime'].strftime(standard_datetime_format_python))
+        
+        # combine current_df back together
+        current_df = current_df_latest.union(current_df_non_latest)
+
         # Write current df to old partition
         current_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_old_partition)
         new_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_new_partition)
+
     else :
         # Write data to new partition
         new_df.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(tmp_table_db_path_new_partition)
+
+def write_update_from_tmp_to_table_db(spark, table_db_base_path, partition_path = '', coalesce_size = 4) :
+    """
+    Takes data from a specific path and partition and write data in the tmp version of this path and writes it to the specific path.
+    Used after upsert_table_partition_with_new_df or upsert_table_by_record
+    """
+
+    bucket, key = s3_path_to_bucket_key(table_db_base_path)
+    table_base_path, table_name = os.path.split(remove_slash(key))
+    
+    full_path_to_db_partition = add_slash(os.path.join(table_db_base_path, partition_path))
+    tmp_full_path_to_db_partition = add_slash(os.path.join('s3://', bucket, table_base_path, table_name + '_tmp', partition_path))
+
+    # Read in new data and drop dea_record_update_type
+    tab = spark.read.parquet(tmp_full_path_to_db_partition).cache().drop('dea_record_update_type')
+
+    # Seperate data into nicer chunks
+    tab.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(full_path_to_db_partition)
