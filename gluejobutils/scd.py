@@ -80,29 +80,33 @@ def update_dea_record_end_datetime(df, partition_by, order_by = 'dea_record_star
 
     return df
 
-def upsert_table_by_record(spark, new_df, table_db_path, update_by_cols, coalesce_size = 4, update_latest_records_only = True, write_back_table_db_path = False) :
+def upsert_table_by_record(spark, new_df, table_db_base_path, update_by_cols, partition_path = '', coalesce_size = 4, update_latest_records_only = True, write_back_table_db_path = False) :
     """
-    Updates the data that current exists at table_db_path with new_df.
+    Updates the data that current exists at table_db_base_path with new_df.
 
-    new_df should have the exact same columns and meta as table_db_path (therefore record start and end dates should have been
+    new_df should have the exact same columns and meta as table_db_base_path (therefore record start and end dates should have been
     applied to new_df.
 
-    table at table_db_path is read in and joined to new_df on update_by_cols. Any rows from table_db_path 
+    table at table_db_base_path is read in and joined to new_df on update_by_cols. Any rows from table_db_base_path 
     that do not match to new_df are written to a partition called dea_record_update_type (set to old). These are records that are unchanged. 
 
-    The rest of table_db_path is appended to new_df as these rows also exist in new_df so we need to recalculate SCD2.
+    The rest of table_db_base_path is appended to new_df as these rows also exist in new_df so we need to recalculate SCD2.
 
     The SCD2 (specifically dea_record_start_date and dea_record_end_date) are recalculated for the appended df. SCD2 are recalculated
     using the update_by_cols variable. This data is then written the same tmp directory but with the partition dea_record_update_type set to new.
 
-    If no file exists in table_db_path then this function writes new_df straight to the tmp folder with partition dea_record_update_type set to new.
+    If no file exists in table_db_base_path then this function writes new_df straight to the tmp folder with partition dea_record_update_type set to new.
 
     update_latest_records_only means that only latest records are called from current table. Set to false if you wish to back fill old update.
     """
-    bucket, key = s3_path_to_bucket_key(table_db_path)
+    if not isinstance(update_by_cols, list) :
+        raise TypeError('update_by_cols must be a list of column names')
+
+    bucket, key = s3_path_to_bucket_key(table_db_base_path)
     table_base_path, table_name = os.path.split(remove_slash(key))
 
-    tmp_table_db_path = os.path.join(table_base_path, table_name + '_tmp')
+    table_db_path = add_slash(os.path.join(table_db_base_path, partition_path))
+    tmp_table_db_path = os.path.join(table_base_path, table_name + '_tmp', partition_path)
     tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
     tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
 
@@ -161,14 +165,14 @@ def upsert_table_partition_with_new_df(spark, new_df, table_db_base_path, partit
     bucket, key = s3_path_to_bucket_key(table_db_base_path)
     table_base_path, table_name = os.path.split(remove_slash(key))
     
-    full_path_to_db_partition = os.path.join(table_db_base_path, partition_path)
+    table_db_path = add_slash(os.path.join(table_db_base_path, partition_path))
     
     tmp_table_db_path = os.path.join(table_base_path, table_name + '_tmp', partition_path)
     tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
     tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
 
-    if folder_contains_only_files_with_extension(full_path_to_db_partition) :
-        current_df = spark.read.parquet(full_path_to_db_partition)
+    if folder_contains_only_files_with_extension(table_db_path) :
+        current_df = spark.read.parquet(table_db_path)
         current_df_non_latest = current_df.filter("dea_record_end_datetime <> to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))
         current_df_latest = current_df.filter("dea_record_end_datetime = to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))
 
@@ -195,11 +199,11 @@ def write_update_from_tmp_to_table_db(spark, table_db_base_path, partition_path 
     bucket, key = s3_path_to_bucket_key(table_db_base_path)
     table_base_path, table_name = os.path.split(remove_slash(key))
     
-    full_path_to_db_partition = add_slash(os.path.join(table_db_base_path, partition_path))
-    tmp_full_path_to_db_partition = add_slash(os.path.join('s3://', bucket, table_base_path, table_name + '_tmp', partition_path))
+    table_db_path = add_slash(os.path.join(table_db_base_path, partition_path))
+    tmp_table_db_path = add_slash(os.path.join('s3://', bucket, table_base_path, table_name + '_tmp', partition_path))
 
     # Read in new data and drop dea_record_update_type
-    tab = spark.read.parquet(tmp_full_path_to_db_partition).cache().drop('dea_record_update_type')
+    tab = spark.read.parquet(tmp_table_db_path).cache().drop('dea_record_update_type')
 
     # Seperate data into nicer chunks
-    tab.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(full_path_to_db_partition)
+    tab.coalesce(coalesce_size).write.mode('overwrite').format('parquet').save(table_db_path)
