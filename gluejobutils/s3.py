@@ -47,7 +47,7 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
-def get_filepaths_from_s3_folder(s3_folder_path, extension = None) :
+def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_byte_files = True) :
     """
     Get a list of filepaths from a bucket. If extension is set to a string then only return files with that extension otherwise if set to None (default) all filepaths are returned.
     """
@@ -61,7 +61,10 @@ def get_filepaths_from_s3_folder(s3_folder_path, extension = None) :
 
     s3b = s3_resource.Bucket(bucket)
     obs = s3b.objects.filter(Prefix = key)
-    ob_keys = [o.key for o in obs if o.key.endswith(extension) and o.size != 0]
+    if exclude_zero_byte_files :
+        ob_keys = [o.key for o in obs if o.key.endswith(extension) and o.size != 0]
+    else :
+        ob_keys = [o.key for o in obs if o.key.endswith(extension)]
     paths = sorted([bucket_key_to_s3_path(bucket, o) for o in ob_keys])
     
     return paths
@@ -88,7 +91,7 @@ def delete_s3_folder_contents(s3_folder_path) :
     Deletes all files within the s3_folder_path given given.
     """
     s3_folder_path = add_slash(s3_folder_path)
-    all_filepaths = get_filepaths_from_s3_folder(s3_folder_path)
+    all_filepaths = get_filepaths_from_s3_folder(s3_folder_path, exclude_zero_byte_files=False)
     for f in all_filepaths :
         delete_s3_object(f)
 
