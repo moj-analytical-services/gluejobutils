@@ -110,7 +110,7 @@ def upsert_table_by_record(spark, new_df, table_db_base_path, update_by_cols, pa
     tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
     tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
 
-    if folder_contains_only_files_with_extension(table_db_path) :
+    if folder_contains_only_files_with_extension(table_db_path, '.parquet') :
         new_keys = new_df.select(*update_by_cols)
         new_keys.createOrReplaceTempView('update_keys')
         spark.read.parquet(table_db_path).cache().createOrReplaceTempView('current_table')
@@ -171,7 +171,7 @@ def upsert_table_partition_with_new_df(spark, new_df, table_db_base_path, partit
     tmp_table_db_path_old_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=old'))
     tmp_table_db_path_new_partition = add_slash(os.path.join('s3://', bucket, tmp_table_db_path, 'dea_record_update_type=new'))
 
-    if folder_contains_only_files_with_extension(table_db_path) :
+    if folder_contains_only_files_with_extension(table_db_path, '.parquet') :
         current_df = spark.read.parquet(table_db_path)
         current_df_non_latest = current_df.filter("dea_record_end_datetime <> to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))
         current_df_latest = current_df.filter("dea_record_end_datetime = to_timestamp('{}', '{}')".format(static_record_end_datetime, standard_datetime_format))

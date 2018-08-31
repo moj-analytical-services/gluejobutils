@@ -25,6 +25,19 @@ job.init(args['JOB_NAME'], args)
 
 print(sys.version)
 
+
+### ### ### ### ### ### ### ### 
+### dea_record_start_date ###
+### ### ### ### ### ### ### ### 
+csv_path = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
+meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
+start_date = '2018-01-01'
+start_datetime = '2018-01-01 01:00:00'
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df = spark.read.csv(csv_path, header = True, schema = meta)
+df = scd.set_dea_record_start_datetime(df, '2018-01-01 01:00:00')
+df.write.partitionBy('dea_record_start_datetime').mode('overwrite').format('parquet').save('s3://alpha-gluejobutils/silly_folder4/')
+
 ## =====================> INIT TEST MODULE TESTING <========================= ##
 s3.delete_s3_folder_contents('s3://alpha-gluejobutils/testing/data_dump/')
 s3.delete_s3_folder_contents('s3://alpha-gluejobutils/database/')
@@ -207,15 +220,15 @@ s3_folder_path3 = 's3://alpha-gluejobutils/testing/data/diamonds_csv/'
 s3_folder_path4 = 's3://alpha-gluejobutils/testing/data/diamonds_parquet/'
 s3_folder_path5 = 's3://alpha-gluejobutils/testing/data/'
 
-if s3.folder_contains_only_files_with_extension(s3_folder_path1) != False:
+if s3.folder_contains_only_files_with_extension(s3_folder_path1, '.parquet') != False:
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
-if s3.folder_contains_only_files_with_extension(s3_folder_path2) != True :
+if s3.folder_contains_only_files_with_extension(s3_folder_path2, 'parquet') != True :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
-if s3.folder_contains_only_files_with_extension(s3_folder_path3, extension = 'csv') != True : 
+if s3.folder_contains_only_files_with_extension(s3_folder_path3, 'csv') != True : 
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
-if s3.folder_contains_only_files_with_extension(s3_folder_path4) != True :
+if s3.folder_contains_only_files_with_extension(s3_folder_path4, '.parquet') != True :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
-if s3.folder_contains_only_files_with_extension(s3_folder_path5) != False :
+if s3.folder_contains_only_files_with_extension(s3_folder_path5, 'parquet') != False :
     raise ValueError('folder_contains_only_files_with_extension FAILURE')
 
 print("===> folder_contains_only_files_with_extension ===> OK")  
