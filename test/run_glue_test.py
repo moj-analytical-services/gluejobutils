@@ -9,11 +9,12 @@ def main(job_role) :
     to_path = f'test/glue_test/glue_py_resources/{package_name}.zip'
     zf = zipfile.ZipFile(to_path, "w")
     zf.write(os.path.join(package_name, '__init__.py'))
-    zf.write(os.path.join(package_name, 'cleaning.py'))
     zf.write(os.path.join(package_name, 'datatypes.py'))
     zf.write(os.path.join(package_name, 'dates.py'))
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
+    zf.write(os.path.join(package_name, 'scd.py'))
+    zf.write(os.path.join(package_name, 'data/data_type_conversion.json'))
     zf.close()
 
     g = GlueJob('test/glue_test/', bucket = 'alpha-gluejobutils', job_role = job_role)
