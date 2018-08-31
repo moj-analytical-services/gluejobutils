@@ -71,6 +71,9 @@ def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_
 
 
 def copy_s3_folder_contents_to_new_folder(old_s3_folder_path, new_s3_folder_path) :
+    """
+    Copies complete folder structure within old_s3_folder_path to the new_s3_folder_path 
+    """
     old_s3_folder_path = add_slash(old_s3_folder_path)
     new_s3_folder_path = add_slash(new_s3_folder_path)
 
@@ -122,11 +125,12 @@ def check_for_s3_file(s3_path) :
         # The object does exist.
         return True
 
-def folder_contains_only_files_with_extension(s3_folder_path, extension = '.parquet') :
+def folder_contains_only_files_with_extension(s3_folder_path, extension) :
     """
-    Checks if a folder contains only parquet data. Used to test if parquet data is in s3 folder.
-    exists = folder_contains_only_files_with_extension("s3://my-bucket/data/").
-    Or for csvs
+    Checks if a folder contains any data (ingores zero-byte files) can also filter by extension.
+    # Check if if folder only contains parquet files
+    exists = folder_contains_only_files_with_extension("s3://my-bucket/data/", '.parquet').
+    # Or check if only csv files exists in data
     exists = folder_contains_only_files_with_extension("s3://my-bucket/data/", '.csv')
     """
     if extension[0] != '.' :
