@@ -13,7 +13,7 @@ def main(job_role) :
     zf.write(os.path.join(package_name, 'dates.py'))
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
-    zf.write(os.path.join(package_name, 'scd.py'))
+    zf.write(os.path.join(package_name, 'dea_record_datetimes.py'))
     zf.write(os.path.join(package_name, 'data/data_type_conversion.json'))
     zf.close()
 
