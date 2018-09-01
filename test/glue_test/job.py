@@ -8,7 +8,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 
-from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes
+from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes, update_table_operations as uto
 
 import datetime
 from pyspark.sql import Row, functions as F
@@ -433,5 +433,169 @@ if sorted(test2.collect()) != sorted(test2_ans.collect()) :
 if sorted(test3.collect()) != sorted(test3_ans.collect()) :
     raise ValueError("update_dea_record_end_date FAILURE")
 print("===> update_dea_record_end_datetime ===> OK")
+
+
+### ### ### ### ### ### ### ### ### ### ### ### ###
+### insert_df_into_table_and_update_scd_by_row ###
+### ### ### ### ### ### ### ### ### ### ### ### ###
+bucket = 'alpha-gluejobutils'
+
+db_table_path = 's3://{}/database/table1/'.format(bucket)
+db_table_path_tmp = 's3://{}/database/table1_tmp/'.format(bucket)
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df_old = spark.read.csv(csv_path, header = True, schema=meta)
+df_old = drd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_old.write.mode('overwrite').parquet(db_table_path)
+
+df_new = spark.read.csv(csv_path, header = True, schema=meta).filter('diamond_id < 1000')
+df_new = drd.init_dea_record_datetimes(df_new, '2018-01-01 01:23:45')
+
+uto.insert_df_into_table_and_update_scd_by_row(spark=spark, new_df=df_new, table_db_base_path=db_table_path, update_by_cols = ['diamond_id'], coalesce_size = 4, update_latest_records_only = True)
+
+if spark.read.parquet(db_table_path_tmp).count() != 54940 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+if spark.read.parquet(db_table_path_tmp+'dea_record_update_type=old/').count() != 52940 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+if spark.read.parquet(db_table_path_tmp+'dea_record_update_type=new/').count() != 2000 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+
+spark.read.parquet(db_table_path_tmp).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='new'")
+test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='old'")
+
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test2.collect()) != sorted(test2_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test3.collect()) != sorted(test3_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+print("===> insert_df_into_table_and_update_scd_by_row () ===> OK")
+
+
+### Test write_update_from_tmp_to_table_db (1/3) ###
+uto.write_update_from_tmp_to_table_db(spark, db_table_path, partition_path = '', coalesce_size = 4)
+if spark.read.parquet(db_table_path).count() != 54940 :
+    raise ValueError('write_update_from_tmp_to_table_db FAILURE')
+
+spark.read.parquet(db_table_path_tmp).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("write_update_from_tmp_to_table_db FAILURE")
+print("===> write_update_from_tmp_to_table_db (1/3) ===> OK")
+
+
+db_table_path = 's3://{}/database/table2/'.format(bucket)
+db_table_path_tmp = 's3://{}/database/table2_tmp/'.format(bucket)
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df_old = spark.read.csv(csv_path, header = True, schema=meta)
+df_old = drd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_old = df_old.withColumn('partition_bin', F.floor(df_old.diamond_id / 10000).cast(IntegerType()))
+df_old.write.mode('overwrite').partitionBy('partition_bin').parquet(db_table_path)
+
+df_new = df_old.filter('diamond_id < 1000')
+df_new = drd.init_dea_record_datetimes(df_new, '2018-01-01 01:23:45').drop('partition_bin')
+
+uto.insert_df_into_table_and_update_scd_by_row(spark=spark, new_df=df_new, table_db_base_path=db_table_path, update_by_cols=['diamond_id'], partition_path='partition_bin=0')
+
+if spark.read.parquet(db_table_path_tmp).count() != 11000 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+if spark.read.parquet(db_table_path_tmp + '/partition_bin=0/dea_record_update_type=old/').count() != 9000 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+if spark.read.parquet(db_table_path_tmp+'/partition_bin=0/dea_record_update_type=new/').count() != 2000 :
+    raise ValueError('insert_df_into_table_and_update_scd_by_row FAILURE')
+
+spark.read.parquet(db_table_path_tmp).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='new'")
+test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='old'")
+
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test2.collect()) != sorted(test2_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+if sorted(test3.collect()) != sorted(test3_ans.collect()) :
+    raise ValueError("update_dea_record_end_date FAILURE")
+print("===> insert_df_into_table_and_update_scd_by_row (2/2) ===> OK")
+
+
+### Test write_update_from_tmp_to_table_db (2/3) ###
+uto.write_update_from_tmp_to_table_db(spark, db_table_path, partition_path = 'partition_bin=0', coalesce_size = 2)
+if spark.read.parquet(db_table_path).count() != 54940 :
+    raise ValueError('write_update_from_tmp_to_table_db FAILURE')
+
+spark.read.parquet(db_table_path).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("write_update_from_tmp_to_table_db FAILURE")
+print("===> write_update_from_tmp_to_table_db (2/3) ===> OK")
+
+
+### ### ### ### ### ### ### ### ### ### ### ### ###
+### insert_df_into_table_and_update_scd_by_row ###
+### ### ### ### ### ### ### ### ### ### ### ### ###
+test1_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 2, 0)), 
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 2, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test2_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 2, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test3_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 2, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+db_table_path = 's3://{}/database/table3/'.format(bucket)
+db_table_path_tmp = 's3://{}/database/table3_tmp/'.format(bucket)
+
+meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
+df_old = spark.read.csv(csv_path, header = True, schema=meta)
+df_old = drd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_old = df_old.withColumn('partition_bin', F.floor(df_old.diamond_id / 10000).cast(IntegerType()))
+df_old.write.mode('overwrite').partitionBy('partition_bin').parquet(db_table_path)
+
+df_new = df_old.filter('partition_bin = 0')
+df_new = drd.init_dea_record_datetimes(df_new, '2018-01-01 02:00:00')
+
+uto.insert_df_into_table_and_update_scd_by_row(spark, new_df=df_new, table_db_base_path = db_table_path, partition_path='partition_bin=0')
+
+spark.read.parquet(db_table_path_tmp).createOrReplaceTempView('df')
+test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='new'")
+test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where dea_record_update_type='old'")
+
+if sorted(test1.collect()) != sorted(test1_ans.collect()) :
+    raise ValueError("insert_df_into_table_and_update_scd_by_row FAILURE")
+if sorted(test2.collect()) != sorted(test2_ans.collect()) :
+    raise ValueError("insert_df_into_table_and_update_scd_by_row FAILURE")
+if sorted(test3.collect()) != sorted(test3_ans.collect()) :
+    raise ValueError("insert_df_into_table_and_update_scd_by_row FAILURE")
+print("===> insert_df_into_table_and_update_scd_by_row ===> OK")
+
+### Test write_update_from_tmp_to_table_db (3/3) ###
+test4_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 2, 0)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 2, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test5_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 2, 0)),
+                                   Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 2, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+test6_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0))]).select('dea_record_start_datetime', 'dea_record_end_datetime')
+
+uto.write_update_from_tmp_to_table_db(spark, db_table_path, partition_path = 'partition_bin=0/', coalesce_size = 4)
+if spark.read.parquet(db_table_path).count() != 63940 :
+    raise ValueError('write_update_from_tmp_to_table_db FAILURE')
+
+spark.read.parquet(db_table_path).createOrReplaceTempView('df')
+test4 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df")
+if sorted(test4.collect()) != sorted(test4_ans.collect()) :
+    raise ValueError("write_update_from_tmp_to_table_db FAILURE")
+    
+test5 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where partition_bin = 0")
+if sorted(test5.collect()) != sorted(test5_ans.collect()) :
+    raise ValueError("write_update_from_tmp_to_table_db FAILURE")
+    
+test6 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df where partition_bin <> 0")
+if sorted(test6.collect()) != sorted(test6_ans.collect()) :
+    raise ValueError("write_update_from_tmp_to_table_db FAILURE")
+print("===> write_update_from_tmp_to_table_db (3/3) ===> OK")
 
 job.commit()
