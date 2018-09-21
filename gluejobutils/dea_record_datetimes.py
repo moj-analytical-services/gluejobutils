@@ -26,8 +26,6 @@ except ImportError:
 from itertools import chain
 
 static_record_end_datetime = '2999-01-01 00:00:00'
-standard_datetime_format = 'yyyy-MM-dd HH:mm:ss'
-standard_datetime_format_python = '%Y-%m-%d %H:%M:%S'
 
 def set_dea_record_start_datetime(df, datetime_string, datetime_format=standard_datetime_format) :
     """

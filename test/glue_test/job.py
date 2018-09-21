@@ -331,7 +331,7 @@ print("===> align_df_to_meta ===> OK")
 ### ### ### ### ### ### ### ### 
 ###python and java timestamp ###
 ### ### ### ### ### ### ### ### 
-if datetime.datetime.strptime(drd.static_record_end_datetime, drd.standard_datetime_format_python).strftime(drd.standard_datetime_format_python) != drd.static_record_end_datetime :
+if datetime.datetime.strptime(drd.static_record_end_datetime, utils.standard_datetime_format_python).strftime(utils.standard_datetime_format_python) != drd.static_record_end_datetime :
     raise ValueError("python and java timestamp formats do not match")
 print("===> python to java timestamp convertion ===> OK")
 
