@@ -12,7 +12,7 @@ from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes
 
 import datetime
 from pyspark.sql import Row, functions as F
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
 
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'metadata_base_path'])
 
@@ -271,7 +271,7 @@ for s, m in zip(schema, metadata['columns']) :
     if s.name != m['name'] :
         raise ValueError('create_spark_schema_from_metadata FAILURE')
         
-schema3 = datatypes.create_spark_schema_from_metadata(metadata, exclude_cols=['carat'], non_nullable_cols=['x','y','z'])        
+schema3 = datatypes.create_spark_schema_from_metadata(metadata, drop_columns=['carat'], non_nullable_cols=['x','y','z'])        
 if 'carat' in [s.name for s in schema3] :
     raise ValueError('create_spark_schema_from_metadata FAILURE')
 
@@ -304,7 +304,7 @@ for s, c in zip(df2.schema, meta['columns']) :
     if str(s.dataType) != datatypes.translate_metadata_type_to_type(c['type'], 'spark') :
         raise ValueError('align_df_to_meta FAILURE')
 
-df3 = datatypes.align_df_to_meta(df, meta, exclude_columns=['x','y','z'])
+df3 = datatypes.align_df_to_meta(df, meta, drop_columns=['x','y','z'])
 if any([e in df3.columns for e in ['x','y','z']]) :
     raise ValueError('align_df_to_meta FAILURE')
 
@@ -323,6 +323,24 @@ df4 = datatypes.align_df_to_meta(df3, meta, null_missing_cols=True)
 fr = df4.take(1)[0].asDict()
 if fr["diamond_id"] != 0 or fr["x"] is not None or fr["y"] is not None or fr["z"] is not None :
     raise ValueError('align_df_to_meta FAILURE')
+
+# added test for new input param
+meta_ignore = s3.read_json_from_s3(meta_path)
+meta_ignore['columns'].append({"name" : "date_col", "type" : 'date', 'description' : ''})
+meta_ignore['columns'].append({"name" : "datetime_col", "type" : 'datetime', 'description' : ''})
+
+df_ignore = spark.read.csv(csv_path, header = True)
+df_ignore = df_ignore.withColumn('date_col', F.lit("2018-01-01"))
+df_ignore = df_ignore.withColumn('datetime_col', F.lit("2018-01-01 01:23:45"))
+
+ignored_cols = ['z','date_col', 'datetime_col']
+df_ignore_out = datatypes.align_df_to_meta(df_ignore, meta_ignore, ignore_columns=ignored_cols)
+
+for s in df_ignore_out.schema :
+    if s.name in ignored_cols :
+        if not isinstance(s.dataType, StringType) :
+            raise ValueError("align_df_to_meta FAILURE (Columns where cast when should have been left unchanged (via ignore_columns parameter))")
+    
 print("===> align_df_to_meta ===> OK") 
 
 

@@ -55,20 +55,22 @@ def align_df_to_meta(df, meta, ignore_columns = [], drop_columns = [], null_miss
     Casts the columns in dataframe provided to the meta data dictionary provided.
     df : Spark DataFrame
     meta : meta data dictionary
-    ignore_columns : a list of column names to not cast to the meta data dictionary
+    ignore_columns : a list of column names to not cast to the meta data dictionary. These columns are remained unchanged.
+    drop_columns : Removes these columns from the dataframe
+    null_mussing_cols : If a column in the meta dictionary does not exist in the dataframe then a column of nulls matching the information in the meta data will be added to the dataframe.
     """
     all_exclude_cols = ignore_columns + drop_columns
     meta_cols_to_convert = [m for m in meta['columns'] if m['name'] not in all_exclude_cols]
     df_cols = df.columns
     for m in meta_cols_to_convert :
         this_type = getattr(pyspark.sql.types, translate_metadata_type_to_type(m["type"], "spark"))
-        if m['name'] in df_cols :s
+        if m['name'] in df_cols :
             df = df.withColumn(m['name'], df[m['name']].cast(this_type()))
         elif null_missing_cols :
             df = df.withColumn(m['name'], F.lit(None).cast(this_type()))
         else :
             raise ValueError("ETL_ERROR: Column name in meta ({}) not in dataframe. Set null_missing_cols to True if you wish to null missing cols. Columns in dataframe {}".format(m['name'], ", ".join(df_cols)))
     
-    df = df.select([x['name'] for x in meta['columns'] if x not in drop_columns])
+    df = df.select([x['name'] for x in meta['columns'] if x['name'] not in drop_columns])
 
     return df
