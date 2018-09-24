@@ -1,5 +1,11 @@
 import json
 
+standard_date_format = 'yyyy-MM-dd'
+standard_date_format_python = '%Y-%m-%d'
+
+standard_datetime_format = 'yyyy-MM-dd HH:mm:ss'
+standard_datetime_format_python = '%Y-%m-%d %H:%M:%S'
+
 def add_slash(s) :
     """
     Adds slash to end of string

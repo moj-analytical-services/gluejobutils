@@ -6,7 +6,7 @@ import boto3
 import botocore
 
 from gluejobutils.s3 import s3_path_to_bucket_key, folder_contains_only_files_with_extension
-from gluejobutils.utils import remove_slash, add_slash, list_to_sql_select
+from gluejobutils.utils import remove_slash, add_slash, list_to_sql_select, standard_datetime_format, standard_datetime_format_python
 
 # Need to be able to run script on glue (using 2.7) or on deployed docker (using 3.6)
 try :
@@ -26,8 +26,6 @@ except ImportError:
 from itertools import chain
 
 static_record_end_datetime = '2999-01-01 00:00:00'
-standard_datetime_format = 'yyyy-MM-dd HH:mm:ss'
-standard_datetime_format_python = '%Y-%m-%d %H:%M:%S'
 
 def set_dea_record_start_datetime(df, datetime_string, datetime_format=standard_datetime_format) :
     """
