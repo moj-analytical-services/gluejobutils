@@ -10,7 +10,6 @@ def main(job_role) :
     zf = zipfile.ZipFile(to_path, "w")
     zf.write(os.path.join(package_name, '__init__.py'))
     zf.write(os.path.join(package_name, 'datatypes.py'))
-    zf.write(os.path.join(package_name, 'dates.py'))
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
     zf.write(os.path.join(package_name, 'dea_record_datetimes.py'))
