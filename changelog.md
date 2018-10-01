@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1 - 2018-10-01
+
+### Removed
+
+- Deleted dates module
+
 ## v1.0.0 - 2018-08-30
 
 ### Changed
