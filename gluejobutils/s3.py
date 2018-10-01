@@ -47,6 +47,15 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
+def read_txt_from_s3(s3_path, encoding = 'utf-8'):
+    """
+    read a txt file from an s3 path
+    """
+    bucket, key = s3_path_to_bucket_key(s3_path)
+    obj = s3_resource.Object(bucket, key)
+    text = obj.get()['Body'].read().decode(encoding)
+    return text
+
 def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_byte_files = True) :
     """
     Get a list of filepaths from a bucket. If extension is set to a string then only return files with that extension otherwise if set to None (default) all filepaths are returned.
