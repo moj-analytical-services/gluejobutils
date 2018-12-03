@@ -8,7 +8,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 
-from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes
+from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes, df_transforms
 
 import datetime
 from pyspark.sql import Row, functions as F
@@ -451,5 +451,31 @@ if sorted(test2.collect()) != sorted(test2_ans.collect()) :
 if sorted(test3.collect()) != sorted(test3_ans.collect()) :
     raise ValueError("update_dea_record_end_date FAILURE")
 print("===> update_dea_record_end_datetime ===> OK")
+
+## =====================> DF_TRANSFORMS MODULE TESTING <========================= ##
+
+### ### ### ### ### ### ### ### ###
+### apply_overwrite_dict_to_df ###
+### ### ### ### ### ### ### ### ###
+overwrite_test = spark.createDataFrame([Row(col1="0", col2="bad", col3="cat", col4=0),
+                                        Row(col1="1", col2="good", col3="cat", col4=1),
+                                        Row(col1="2", col2="speeling error", col3="fish", col4=2),
+                                        Row(col1="3", col2="bad", col3="dog", col4=None)])
+
+overwrite_test_ans = spark.createDataFrame([Row(col1="0", col2="bad", col3="cat", col4=0),
+                                            Row(col1="1", col2="absolute unit", col3="bb", col4=1),
+                                            Row(col1="2", col2="speeling error", col3="spelling fix", col4=2),
+                                            Row(col1="3", col2="bad", col3="dog", col4=3)])
+
+overwrite_dict = {
+    "1": {"col2" : "absolute unit", "col3" : "bb"},
+    "2": {"col3" : "spelling fix"},
+    "3": {"col4" : 3}
+}
+
+overwrite_test = df_transforms.apply_overwrite_dict_to_df(overwrite_test, "col1", overwrite_dict)
+if sorted(overwrite_test.collect()) != sorted(overwrite_test_ans.collect()) :
+    raise ValueError("apply_overwrite_dict_to_df FAILURE")
+print("===> apply_overwrite_dict_to_df ===> OK")
 
 job.commit()

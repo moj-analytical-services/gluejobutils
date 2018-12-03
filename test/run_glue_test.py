@@ -13,12 +13,18 @@ def main(job_role) :
     zf.write(os.path.join(package_name, 's3.py'))
     zf.write(os.path.join(package_name, 'utils.py'))
     zf.write(os.path.join(package_name, 'dea_record_datetimes.py'))
+    zf.write(os.path.join(package_name, 'df_transforms.py'))
     zf.write(os.path.join(package_name, 'data/data_type_conversion.json'))
     zf.close()
 
     g = GlueJob('test/glue_test/', bucket = 'alpha-gluejobutils', job_role = job_role)
     g.job_name = 'gluejobutils_unit_test'
     g.run_job()
+
+    g.wait_for_completion(True)
+    if g.job_run_state == 'SUCCEEDED' :
+        print("cleaning up job...")
+        g.cleanup()
 
 if __name__ == "__main__" :
     parser = argparse.ArgumentParser()
