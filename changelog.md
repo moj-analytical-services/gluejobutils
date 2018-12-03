@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 - 2018-12-03
+
+### Added new module
+
+- `df_transforms` module now has one function called apply_overwrite_dict_to_df. Which applies a json dictionary of fixes to a spark df.
+
 ## v1.0.1 - 2018-10-01
 
 ### Removed
