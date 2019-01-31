@@ -47,6 +47,17 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
+def write_csv_to_s3(data, s3_path) :
+    """
+    Saves your data to a csv file (in memory and then sends it to the s3 path provided)
+    """
+    bucket, key = s3_path_to_bucket_key(s3_path)
+    csv_buffer = StringIO()
+    data.to_csv(csv_buffer)
+    data_obj = s3_resource.Object(bucket, key)
+    data_upload_resp = data_obj.put(Body=csv_buffer.getvalue())
+    return data_upload_resp
+
 def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_byte_files = True) :
     """
     Get a list of filepaths from a bucket. If extension is set to a string then only return files with that extension otherwise if set to None (default) all filepaths are returned.
