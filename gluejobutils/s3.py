@@ -47,16 +47,16 @@ def write_json_to_s3(data, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
-def write_csv_to_s3(data, s3_path) :
+def write_df_as_csv_to_s3(data, s3_path) :
     """
     Saves your data to a csv file (in memory and then sends it to the s3 path provided)
     """
     bucket, key = s3_path_to_bucket_key(s3_path)
     csv_buffer = StringIO()
-    data.to_csv(csv_buffer)
-    data_obj = s3_resource.Object(bucket, key)
-    data_upload_resp = data_obj.put(Body=csv_buffer.getvalue())
-    return data_upload_resp
+    df.to_csv(csv_buffer)
+    df_obj = s3_resource.Object(bucket, key)
+    df_upload = df_obj.put(Body=csv_buffer.getvalue())
+    return df_upload
 
 def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_byte_files = True) :
     """
