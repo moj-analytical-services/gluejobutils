@@ -39,7 +39,7 @@ def read_json_from_s3(s3_path, encoding = 'utf-8') :
     text = obj.get()['Body'].read().decode(encoding)
     return json.loads(text)
 
-def write_json_to_s3(df, s3_path) :
+def write_json_to_s3(data, s3_path) :
     """
     Saves your data to a json file (in memory and then sends it to the s3 path provided)
     """
@@ -50,7 +50,7 @@ def write_json_to_s3(df, s3_path) :
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
 
-def write_df_as_csv_to_s3(data, s3_path) :
+def write_df_as_csv_to_s3(df, s3_path) :
     """
     Saves your data to a csv file (in memory and then sends it to the s3 path provided)
     """
