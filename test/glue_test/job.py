@@ -1,6 +1,7 @@
 # UNIT TEST FOR GLUEJOBUTILS
 import sys
 import os
+#import pandas as pd
 
 # from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
@@ -136,6 +137,20 @@ print("===> write_json_to_s3 ===> OK")
 #if df != df2 :
 #    raise ValueError('write_df_as_csv FAILURE')
 #print("===> write_df_as_csv_to_s3 ===> OK")
+
+### ### ### ### ### ### ### ###
+### write_df_as_feather_to_s3 ### 
+### ### ### ### ### ### ### ###
+#import pandas as pd
+#df = pd.Dataframe(data = {'col1': [1, 2], 'col2': [3, 4]})
+#s3.write_df_as_feather_to_s3(df, 's3://alpha-gluejobutils/testing/data_dump/test1.feather')
+#bucket, key = s3_path_to_bucket_key('s3://alpha-gluejobutils/testing/data_dump/test1.feather')
+#obj = s3_resource.Object(bucket, key)
+#df2 = pd.read_feather(obj['Body'])
+
+#if df != df2 :
+#    raise ValueError('write_df_as_feather_to_s3 FAILURE')
+#print("===> write_df_as_feather_to_s3 ===> OK")
 
 
 ### ### ### ### ### ### ###  

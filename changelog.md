@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.3 - 2018-02-05
+
+### Added functions
+
+ - `write_df_as_feather_to_s3` and `write_df_as_csv_to_s3` to `s3` module
+ - added unit tests for them (currently commented out as Athena doesn't do pandas)
+
 ## v1.0.2 - 2018-12-03
 
 ### Added new module

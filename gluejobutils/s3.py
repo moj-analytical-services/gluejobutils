@@ -4,6 +4,9 @@ import botocore
 
 from gluejobutils.utils import add_slash, remove_slash
 
+from io import BytesIO
+from pyarrow.feather import write_feather
+
 try :
     # python 2.7
     from StringIO import StringIO
@@ -57,6 +60,17 @@ def write_df_as_csv_to_s3(data, s3_path) :
     df_obj = s3_resource.Object(bucket, key)
     df_upload = df_obj.put(Body=csv_buffer.getvalue())
     return df_upload
+
+def write_df_as_feather_to_s3(df, s3_path) :
+    """
+    Saves your dataframe as a feather and writes it to S3 (in memory and then sends it to the s3 path provided)
+    """
+    bucket, key = s3.s3_path_to_bucket_key(s3_path)
+    feather_buffer = BytesIO()
+    write_feather(df, feather_buffer)
+    data_obj = s3_resource.Object(bucket, key)
+    data_upload_resp = data_obj.put(Body=feather_buffer.getvalue())
+    return data_upload_resp
 
 def get_filepaths_from_s3_folder(s3_folder_path, extension = None, exclude_zero_byte_files = True) :
     """
