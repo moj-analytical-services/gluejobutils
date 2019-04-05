@@ -27,7 +27,7 @@ def s3_path_to_bucket_key(s3_path):
     bucket, key = s3_path.split('/', 1)
     return bucket, key
 
-def read_json_from_s3(s3_path, encoding = 'utf-8') :
+def read_json_from_s3(s3_path, encoding='utf-8'):
     """
     read a json file from an s3 path
     """
@@ -36,13 +36,13 @@ def read_json_from_s3(s3_path, encoding = 'utf-8') :
     text = obj.get()['Body'].read().decode(encoding)
     return json.loads(text)
 
-def write_json_to_s3(data, s3_path) :
+def write_json_to_s3(data, s3_path, indent=4, separators=(',', ': ')):
     """
     Saves your data to a json file (in memory and then sends it to the s3 path provided)
     """
     bucket, key = s3_path_to_bucket_key(s3_path)
     log_file = StringIO()
-    json.dump(data, log_file, indent=4, separators=(',', ': '))
+    json.dump(data, log_file, indent=indent, separators=separators)
     log_obj = s3_resource.Object(bucket, key)
     log_upload_resp = log_obj.put(Body=log_file.getvalue())
     return log_upload_resp
