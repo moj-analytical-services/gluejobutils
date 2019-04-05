@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.3 - 2019-04-05
+
+### Changed
+
+- `write_json_to_s3` function now takes two additional arguments `indent` and `seperators` (optional). These are passed to the `json.dump` function. Defaults are set to what they were inside the function so backwards compatible with previous versions.
+
 ## v1.0.2 - 2018-12-03
 
 ### Added new module
