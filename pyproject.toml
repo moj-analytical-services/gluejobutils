@@ -1,0 +1,11 @@
+[tool]
+[tool.poetry]
+name = "gluejobutils"
+version = "1.0.4"
+description = "Python 2.7 utils for glue jobs"
+license = "MIT"
+authors = ["Robin Linacre <robinlinacre@hotmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~2.7 || ^3.5"
