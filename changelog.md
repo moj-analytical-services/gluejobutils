@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.4 - 2019-06-13
+
+### Changed
+
+- Deleted `setup.py` added `pyproject.toml`. Published to Pypi.
+
 ## v1.0.3 - 2019-04-05
 
 ### Changed
