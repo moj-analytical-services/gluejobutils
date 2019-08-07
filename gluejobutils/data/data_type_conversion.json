@@ -30,5 +30,13 @@
   "long": {
     "glue": "bigint",
     "spark": "LongType"
+  },
+  "array" : {
+    "glue" : "array",
+    "spark": "ArrayType",
+  },
+  "struct" : {
+    "glue" : "struct",
+    "spark": "MapType",
   }
 }
