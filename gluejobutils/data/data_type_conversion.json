@@ -33,10 +33,10 @@
   },
   "array" : {
     "glue" : "array",
-    "spark": "ArrayType",
+    "spark": "ArrayType"
   },
   "struct" : {
     "glue" : "struct",
-    "spark": "MapType",
+    "spark": "MapType"
   }
 }
