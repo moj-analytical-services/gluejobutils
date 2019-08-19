@@ -80,12 +80,15 @@ def init_record_datetimes(
     return df
 
 
-def update_record_end_datetime(df, partition_by, order_by, col_prefix=""):
+def update_record_end_datetime(
+    df, partition_by, order_by, col_prefix="", filter_redundant_records=True
+):
     """
     Takes dataframe and sets all record_end_datetime by ordering the data by specified order clause and partition variable.
     partition_by and order_by should be a string. If partitioning or ordering by multiple columns provide them as a single comma seperated string e.g. 'col1, col2'.
     record_end_datetime is set to the next records record_start_datetime. If the record_end_datetime is last row of that partition then it is set to 
-    the default static_record_end_datetime (i.e. 2999-01-01 00:00:00)
+    the default static_record_end_datetime (i.e. 2999-01-01 00:00:00).
+    If filter_redundant_records is True (default) records in df with start_date == end_date will be filtered out.
     """
     start_col = col_prefix + "record_start_datetime"
     end_col = col_prefix + "record_end_datetime"
@@ -110,6 +113,7 @@ def update_record_end_datetime(df, partition_by, order_by, col_prefix=""):
     )
 
     # Filter out redundent records
-    df = df.filter("{} <> {}".format(start_col, end_col))
+    if filter_redundant_records:
+        df = df.filter("{} <> {}".format(start_col, end_col))
 
     return df
