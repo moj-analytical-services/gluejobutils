@@ -8,7 +8,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 
-from gluejobutils import s3, utils, dea_record_datetimes as drd, datatypes, df_transforms
+from gluejobutils import s3, utils, record_datetimes as drd, datatypes, df_transforms
 
 import datetime
 from pyspark.sql import Row, functions as F
@@ -34,8 +34,8 @@ meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
 start_date = '2018-01-01'
 start_datetime = '2018-01-01 01:00:00'
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
-df = spark.read.csv(csv_path, header = True, schema = meta)
-df = drd.set_dea_record_start_datetime(df, '2018-01-01 01:00:00')
+df = spark.read.csv(csv_path, header=True, schema=meta)
+df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
 df.write.partitionBy('dea_record_start_datetime').mode('overwrite').format('parquet').save('s3://alpha-gluejobutils/silly_folder4/')
 
 ## =====================> INIT TEST MODULE TESTING <========================= ##
@@ -47,7 +47,7 @@ meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
 
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df_old = spark.read.csv(csv_path, header = True, schema=meta)
-df_old = drd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
+df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_")
 df_old.write.mode('overwrite').parquet('s3://alpha-gluejobutils/database/table1/')
 
 ## =====================> UTILS MODULE TESTING <========================= ##
@@ -71,11 +71,11 @@ diamonds_obj = 'testing/data/diamonds.csv'
 ### bucket_key_to_s3_path ### 
 ### ### ### ### ### ### ### ###
 out = s3.bucket_key_to_s3_path(bucket, diamonds_obj)
-if out != 's3://alpha-gluejobutils/testing/data/diamonds.csv' :
+if out != 's3://alpha-gluejobutils/testing/data/diamonds.csv':
     raise ValueError('bucket_key_to_s3_path FAILURE')
 
 out = s3.bucket_key_to_s3_path(bucket, 'some/path/')
-if out != 's3://alpha-gluejobutils/some/path/' :
+if out != 's3://alpha-gluejobutils/some/path/':
     raise ValueError('bucket_key_to_s3_path FAILURE')
     
 out = s3.bucket_key_to_s3_path(bucket, 'some/path')
@@ -89,15 +89,15 @@ print("===> bucket_key_to_s3_path ===> OK")
 ### s3_path_to_bucket_key ### 
 ### ### ### ### ### ### ### ### 
 b, o = s3.s3_path_to_bucket_key('s3://alpha-gluejobutils/testing/data/diamonds_csv/diamonds.csv')
-if b != 'alpha-gluejobutils' or o != 'testing/data/diamonds_csv/diamonds.csv' :
+if b != 'alpha-gluejobutils' or o != 'testing/data/diamonds_csv/diamonds.csv':
     raise ValueError('s3_path_to_bucket_key FAILURE')
 
 b, o = s3.s3_path_to_bucket_key('s3://alpha-gluejobutils/testing/data')
-if b != 'alpha-gluejobutils' or o != 'testing/data' :
+if b != 'alpha-gluejobutils' or o != 'testing/data':
     raise ValueError('s3_path_to_bucket_key FAILURE')
 
 b, o = s3.s3_path_to_bucket_key('s3://alpha-gluejobutils/testing/data/')
-if b != 'alpha-gluejobutils' or o != 'testing/data/' :
+if b != 'alpha-gluejobutils' or o != 'testing/data/':
     raise ValueError('s3_path_to_bucket_key FAILURE')
 print("===> s3_path_to_bucket_key ===> OK")
 
@@ -107,7 +107,7 @@ print("===> s3_path_to_bucket_key ===> OK")
 ### ### ### ### ### ### ### 
 test_json = s3.read_json_from_s3('s3://alpha-gluejobutils/testing/meta_data/diamonds.json')
 diff = len(set(['$schema', 'name', 'description', 'data_format', 'columns', 'partitions', 'location']).difference(test_json.keys()))
-if diff != 0 :
+if diff != 0:
     raise ValueError('read_json_from_s3 FAILURE')
 print("===> read_json_from_s3 ===> OK")
 
@@ -349,7 +349,7 @@ print("===> align_df_to_meta ===> OK")
 ### ### ### ### ### ### ### ### 
 ###python and java timestamp ###
 ### ### ### ### ### ### ### ### 
-if datetime.datetime.strptime(drd.static_record_end_datetime, utils.standard_datetime_format_python).strftime(utils.standard_datetime_format_python) != drd.static_record_end_datetime :
+if datetime.datetime.strptime(drd.static_record_end_datetime, utils.standard_datetime_format_python).strftime(utils.standard_datetime_format_python) != drd.static_record_end_datetime:
     raise ValueError("python and java timestamp formats do not match")
 print("===> python to java timestamp convertion ===> OK")
 
@@ -363,34 +363,34 @@ start_date = '2018-01-01'
 start_datetime = '2018-01-01 01:00:00'
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df = spark.read.csv(csv_path, header = True, schema = meta)
-df = drd.set_dea_record_start_datetime(df, '2018-01-01 01:00:00')
+df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
 
-if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime :
-    raise ValueError('set_dea_record_start_date FAILURE')
+if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime:
+    raise ValueError('set_record_start_date FAILURE')
     
-df = drd.set_dea_record_start_datetime(df, '12:34:56 31/12/2017', datetime_format="HH:mm:ss dd/MM/yyyy")
-if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2017-12-31 12:34:56' :
-    raise ValueError('set_dea_record_start_datetime FAILURE')
+df = drd.set_record_start_datetime(df, '12:34:56 31/12/2017', datetime_format="HH:mm:ss dd/MM/yyyy", col_prefix="dea_")
+if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2017-12-31 12:34:56':
+    raise ValueError('set_record_start_datetime FAILURE')
 
 if not isinstance(df.take(1)[0].asDict()['dea_record_start_datetime'], datetime.datetime) :
-    raise ValueError('dea_record_start_date FAILURE')
-print("===> set_dea_record_start_datetime ===> OK") 
+    raise ValueError('record_start_date FAILURE')
+print("===> set_record_start_datetime ===> OK") 
 
 
 ### ### ### ### ### ### ### ### 
 ### set_dea_record_end_date ###
 ### ### ### ### ### ### ### ### 
-df = drd.set_dea_record_end_datetime(df)
+df = drd.set_record_end_datetime(df, col_prefix="dea_")
 end_datetime = '2999-01-01 00:00:00'
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
-    raise ValueError('dea_record_end_date FAILURE')
+    raise ValueError('record_end_date FAILURE')
 if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
-    raise ValueError('dea_record_end_date FAILURE')
+    raise ValueError('record_end_date FAILURE')
 
-df = drd.set_dea_record_end_datetime(df, '2018-01-01 01:00:00')
+df = drd.set_record_end_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2018-01-01 01:00:00' :
-    raise ValueError('dea_record_end_date FAILURE')
-print("===> set_dea_record_end_datetime ===> OK") 
+    raise ValueError('record_end_date FAILURE')
+print("===> set_record_end_datetime ===> OK") 
 
 
 ### ### ### ### ### ### ### ### 
@@ -401,21 +401,21 @@ end_datetime = '2999-01-01 00:00:00'
 
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df = spark.read.csv(csv_path, header = True, schema=meta)
-df = drd.init_dea_record_datetimes(df, start_datetime)
+df = drd.init_record_datetimes(df, start_datetime, col_prefix="dea_")
 
 if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime :
-    raise ValueError('init_dea_record_dates FAILURE')
+    raise ValueError('init_record_dates FAILURE')
 if not isinstance(df.take(1)[0].asDict()['dea_record_start_datetime'], datetime.datetime) :
-    raise ValueError('init_dea_record_dates FAILURE')
+    raise ValueError('init_record_dates FAILURE')
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
-    raise ValueError('init_dea_record_dates FAILURE')
+    raise ValueError('init_record_dates FAILURE')
 if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
-    raise ValueError('init_dea_record_dates FAILURE')
-print("===> init_dea_record_datetimes ===> OK")
+    raise ValueError('init_record_dates FAILURE')
+print("===> init_record_datetimes ===> OK")
 
 
 ### ### ### ### ### ### ### ### ### ###
-### update_dea_record_end_datetime ###
+### update_record_end_datetime ###
 ### ### ### ### ### ### ### ### ### ###
 test1_ans = spark.createDataFrame([Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2018, 1, 1, 1, 23, 45)),
                                    Row(dea_record_start_datetime=datetime.datetime(2018, 1, 1, 1, 0), dea_record_end_datetime=datetime.datetime(2999, 1, 1, 0, 0)),
@@ -430,14 +430,14 @@ meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df_old = spark.read.csv(csv_path, header = True, schema=meta)
 df_new = spark.read.csv(csv_path, header = True).filter('diamond_id < 1000')
 
-df_old = drd.init_dea_record_datetimes(df_old, '2018-01-01 01:00:00')
-df_new = drd.init_dea_record_datetimes(df_new, '2018-01-01 01:23:45')
+df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_")
+df_new = drd.init_record_datetimes(df_new, '2018-01-01 01:23:45', col_prefix="dea_")
 
 df = df_old.union(df_new)
-df = drd.update_dea_record_end_datetime(df, 'diamond_id')
+df = drd.update_record_end_datetime(df, 'diamond_id', 'dea_record_start_datetime', col_prefix="dea_")
 
 if df.count() != 54940 :
-    raise ValueError('update_dea_record_end_date FAILURE')
+    raise ValueError('update_record_end_datetime FAILURE')
     
 df.createOrReplaceTempView('df')
 test1 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df ORDER BY dea_record_start_datetime, dea_record_end_datetime")
@@ -445,12 +445,12 @@ test2 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_dat
 test3 = spark.sql("SELECT DISTINCT dea_record_start_datetime, dea_record_end_datetime FROM df WHERE diamond_id >= 1000 ORDER BY dea_record_start_datetime, dea_record_end_datetime")
 
 if sorted(test1.collect()) != sorted(test1_ans.collect()) :
-    raise ValueError("update_dea_record_end_date FAILURE")
+    raise ValueError("update_record_end_date FAILURE")
 if sorted(test2.collect()) != sorted(test2_ans.collect()) :
-    raise ValueError("update_dea_record_end_date FAILURE")
+    raise ValueError("update_record_end_date FAILURE")
 if sorted(test3.collect()) != sorted(test3_ans.collect()) :
-    raise ValueError("update_dea_record_end_date FAILURE")
-print("===> update_dea_record_end_datetime ===> OK")
+    raise ValueError("update_record_end_date FAILURE")
+print("===> update_record_end_datetime ===> OK")
 
 ## =====================> DF_TRANSFORMS MODULE TESTING <========================= ##
 
