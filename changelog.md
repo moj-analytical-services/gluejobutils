@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.0 - 2019-06-13
+
+### Changed
+
+- dea_record_datetimes has been renamed to record_datetimes
+- dropped `dea_` prefix from record_datetimes module
+- functions now give option to add col_prefix (can set to `dea_`) to get old functionality (aka expected colnames from previous versions)
+- Applied python black to scripts
+
 ## v1.0.4 - 2019-06-13
 
 ### Changed
