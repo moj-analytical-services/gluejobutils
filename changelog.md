@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.0 - 2019-08-20
+
+### Changed
+
+- default names in `record_datetimes` module from `record_start_datetime` and `record_end_datetime` to start_datetime and end_datetime (this should have been in v2 but was a typo)
+
 ## v2.0.0 - 2019-08-19
 
 ### Changed

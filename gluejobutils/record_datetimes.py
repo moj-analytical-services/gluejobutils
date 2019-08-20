@@ -33,11 +33,11 @@ def set_record_start_datetime(
     df, datetime_string, datetime_format=standard_datetime_format, col_prefix=""
 ):
     """
-    Set a start datetime to a df as the record_start_datetime. datetime_string should be a string representing datetime (default format is 'yyyy-MM-dd HH:mm:ss').
+    Set a start datetime to a df as the start_datetime. datetime_string should be a string representing datetime (default format is 'yyyy-MM-dd HH:mm:ss').
     For non standard format to datetime_string use datetime_format to put it in standard format.
     Note that the datetime_format specified should be a standard Java datetime format and not the python datetime format. 
     """
-    record_start_datetime = col_prefix + "record_start_datetime"
+    record_start_datetime = col_prefix + "start_datetime"
 
     df = df.withColumn(
         record_start_datetime, F.to_timestamp(F.lit(datetime_string), datetime_format)
@@ -51,7 +51,7 @@ def set_record_end_datetime(df, datetime_string=None, col_prefix=""):
     Sets the column record_end_datetime the speficied datetime_string. Default value is to the datetime 2999-01-01 00:00:00.
     Returns a df.
     """
-    record_end_datetime = col_prefix + "record_end_datetime"
+    record_end_datetime = col_prefix + "end_datetime"
     if datetime_string is None:
         datetime_string = static_record_end_datetime
 
@@ -66,7 +66,7 @@ def init_record_datetimes(
     df, datetime_string, datetime_format=standard_datetime_format, col_prefix=""
 ):
     """
-    Initialises record_start_datetime and record_end_datetime.
+    Initialises start_datetime and end_datetime cols.
     Calls set_record_start_datetime and then set_record_end_datetime on df.
     Returns a df.
     """
@@ -84,14 +84,14 @@ def update_record_end_datetime(
     df, partition_by, order_by, col_prefix="", filter_redundant_records=True
 ):
     """
-    Takes dataframe and sets all record_end_datetime by ordering the data by specified order clause and partition variable.
+    Takes dataframe and sets all end_datetime by ordering the data by specified order clause and partition variable.
     partition_by and order_by should be a string. If partitioning or ordering by multiple columns provide them as a single comma seperated string e.g. 'col1, col2'.
-    record_end_datetime is set to the next records record_start_datetime. If the record_end_datetime is last row of that partition then it is set to 
+    end_datetime is set to the next records start_datetime. If the end_datetime is last row of that partition then it is set to 
     the default static_record_end_datetime (i.e. 2999-01-01 00:00:00).
     If filter_redundant_records is True (default) records in df with start_date == end_date will be filtered out.
     """
-    start_col = col_prefix + "record_start_datetime"
-    end_col = col_prefix + "record_end_datetime"
+    start_col = col_prefix + "start_datetime"
+    end_col = col_prefix + "end_datetime"
 
     df = df.withColumn(
         end_col,

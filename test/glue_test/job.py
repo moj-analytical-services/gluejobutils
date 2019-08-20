@@ -35,7 +35,7 @@ start_date = '2018-01-01'
 start_datetime = '2018-01-01 01:00:00'
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df = spark.read.csv(csv_path, header=True, schema=meta)
-df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
+df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_record_")
 df.write.partitionBy('dea_record_start_datetime').mode('overwrite').format('parquet').save('s3://alpha-gluejobutils/silly_folder4/')
 
 ## =====================> INIT TEST MODULE TESTING <========================= ##
@@ -47,7 +47,7 @@ meta_path = 's3://alpha-gluejobutils/testing/meta_data/diamonds.json'
 
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df_old = spark.read.csv(csv_path, header = True, schema=meta)
-df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_")
+df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_record_")
 df_old.write.mode('overwrite').parquet('s3://alpha-gluejobutils/database/table1/')
 
 ## =====================> UTILS MODULE TESTING <========================= ##
@@ -363,12 +363,12 @@ start_date = '2018-01-01'
 start_datetime = '2018-01-01 01:00:00'
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df = spark.read.csv(csv_path, header = True, schema = meta)
-df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
+df = drd.set_record_start_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_record_")
 
 if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime:
     raise ValueError('set_record_start_date FAILURE')
     
-df = drd.set_record_start_datetime(df, '12:34:56 31/12/2017', datetime_format="HH:mm:ss dd/MM/yyyy", col_prefix="dea_")
+df = drd.set_record_start_datetime(df, '12:34:56 31/12/2017', datetime_format="HH:mm:ss dd/MM/yyyy", col_prefix="dea_record_")
 if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2017-12-31 12:34:56':
     raise ValueError('set_record_start_datetime FAILURE')
 
@@ -380,14 +380,14 @@ print("===> set_record_start_datetime ===> OK")
 ### ### ### ### ### ### ### ### 
 ### set_dea_record_end_date ###
 ### ### ### ### ### ### ### ### 
-df = drd.set_record_end_datetime(df, col_prefix="dea_")
+df = drd.set_record_end_datetime(df, col_prefix="dea_record_")
 end_datetime = '2999-01-01 00:00:00'
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != end_datetime :
     raise ValueError('record_end_date FAILURE')
 if not isinstance(df.take(1)[0].asDict()['dea_record_end_datetime'], datetime.datetime) :
     raise ValueError('record_end_date FAILURE')
 
-df = drd.set_record_end_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_")
+df = drd.set_record_end_datetime(df, '2018-01-01 01:00:00', col_prefix="dea_record_")
 if df.take(1)[0].asDict()['dea_record_end_datetime'].strftime('%Y-%m-%d %H:%M:%S') != '2018-01-01 01:00:00' :
     raise ValueError('record_end_date FAILURE')
 print("===> set_record_end_datetime ===> OK") 
@@ -401,7 +401,7 @@ end_datetime = '2999-01-01 00:00:00'
 
 meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df = spark.read.csv(csv_path, header = True, schema=meta)
-df = drd.init_record_datetimes(df, start_datetime, col_prefix="dea_")
+df = drd.init_record_datetimes(df, start_datetime, col_prefix="dea_record_")
 
 if df.take(1)[0].asDict()['dea_record_start_datetime'].strftime('%Y-%m-%d %H:%M:%S') != start_datetime :
     raise ValueError('init_record_dates FAILURE')
@@ -430,11 +430,11 @@ meta = datatypes.create_spark_schema_from_metadata_file(meta_path)
 df_old = spark.read.csv(csv_path, header = True, schema=meta)
 df_new = spark.read.csv(csv_path, header = True).filter('diamond_id < 1000')
 
-df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_")
-df_new = drd.init_record_datetimes(df_new, '2018-01-01 01:23:45', col_prefix="dea_")
+df_old = drd.init_record_datetimes(df_old, '2018-01-01 01:00:00', col_prefix="dea_record_")
+df_new = drd.init_record_datetimes(df_new, '2018-01-01 01:23:45', col_prefix="dea_record_")
 
 df = df_old.union(df_new)
-df = drd.update_record_end_datetime(df, 'diamond_id', 'dea_record_start_datetime', col_prefix="dea_")
+df = drd.update_record_end_datetime(df, 'diamond_id', 'dea_record_start_datetime', col_prefix="dea_record_")
 
 if df.count() != 54940 :
     raise ValueError('update_record_end_datetime FAILURE')
