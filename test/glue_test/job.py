@@ -345,7 +345,10 @@ schema2 = datatypes.create_spark_schema_from_metadata_file(
 )
 if schema != schema2:
     raise ValueError(
-        "create_spark_schema_from_metadata | create_spark_schema_from_metadata_file FAILURE"
+        (
+            "create_spark_schema_from_metadata | "
+            "create_spark_schema_from_metadata_file FAILURE"
+        )
     )
 
 for s, m in zip(schema, metadata["columns"]):
@@ -432,7 +435,10 @@ for s in df_ignore_out.schema:
     if s.name in ignored_cols:
         if not isinstance(s.dataType, StringType):
             raise ValueError(
-                "align_df_to_meta FAILURE (Columns where cast when should have been left unchanged (via ignore_columns parameter))"
+                (
+                    "align_df_to_meta FAILURE (columns where cast when should "
+                    "have been left unchanged (via ignore_columns parameter))"
+                )
             )
 
 print("===> align_df_to_meta ===> OK")

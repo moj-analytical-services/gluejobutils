@@ -19,9 +19,10 @@ def translate_metadata_type_to_type(column_type, target_type="glue"):
         return lookup[column_type][target_type]
     except:
         raise KeyError(
-            "You attempted to lookup column type {}, but this cannot be found in data_type_conversion.json".format(
-                column_type
-            )
+            (
+                "You attempted to lookup column type {}, but "
+                "this cannot be found in data_type_conversion.json"
+            ).format(column_type)
         )
 
 
@@ -90,9 +91,11 @@ def align_df_to_meta(
             df = df.withColumn(m["name"], F.lit(None).cast(this_type()))
         else:
             raise ValueError(
-                "ETL_ERROR: Column name in meta ({}) not in dataframe. Set null_missing_cols to True if you wish to null missing cols. Columns in dataframe {}".format(
-                    m["name"], ", ".join(df_cols)
-                )
+                (
+                    "ETL_ERROR: Column name in meta ({}) not in dataframe. "
+                    "Set null_missing_cols to True if you wish to null missing "
+                    "cols. Columns in dataframe {}"
+                ).format(m["name"], ", ".join(df_cols))
             )
 
     df = df.select(
