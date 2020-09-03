@@ -27,6 +27,11 @@
     "glue": "double",
     "spark": "DoubleType"
   },
+  },
+  "decimal": {
+    "glue": "decimal",
+    "spark": "DecimalType"
+  },
   "long": {
     "glue": "bigint",
     "spark": "LongType"
