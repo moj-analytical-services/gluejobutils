@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.1.1 – 2020-09-04
+
+### Change
+- Update CHANGELOG and pyproject.toml missed in release v3.1.0
+
+## v3.1.0 – 2020-09-03
+
+### Change
+- Add decimal data type to data_type_conversion.json
+
 ## v3.0.0 - 2019-08-20
 
 ### Changed
