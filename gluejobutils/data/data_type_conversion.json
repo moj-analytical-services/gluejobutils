@@ -11,6 +11,10 @@
     "glue": "float",
     "spark": "FloatType"
   },
+  "binary": {
+    "glue":"binary",
+    "spark":"BinaryType"
+  },
   "boolean": {
     "glue": "boolean",
     "spark": "BooleanType"
