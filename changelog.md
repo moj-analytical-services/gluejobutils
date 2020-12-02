@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.2.0 - 2020-12-01
+
+### Change
+- Add binary data type to data_type_conversion.json
+
 ## v3.1.1 – 2020-09-04
 
 ### Change
