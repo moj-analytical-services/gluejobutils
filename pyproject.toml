@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "gluejobutils"
-version = "3.1.1"
+version = "3.2.0"
 description = "Python 2.7 utils for glue jobs"
 license = "MIT"
 authors = ["Robin Linacre <robinlinacre@hotmail.com>"]
